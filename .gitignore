@@ -1,0 +1,50 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# EAS / secrets
+.env
+.env.local
+.env.*.local
+credentials/
+google-services.json
+google-services.json.bak
+*.keystore
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# macOS
+.DS_Store
+
+# editors
+.idea/
+.vscode/
+*.swp
