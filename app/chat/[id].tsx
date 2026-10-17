@@ -182,7 +182,7 @@ export default function ChatScreen() {
             />
           )}
           ListEmptyComponent={
-            loading ? null : (
+            loading ? undefined : (
               <EmptyState
                 icon="chatbubble-ellipses-outline"
                 title="No messages yet"

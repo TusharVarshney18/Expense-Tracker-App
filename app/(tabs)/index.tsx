@@ -85,7 +85,7 @@ export default function ExpensesScreen() {
           />
         )}
         ListEmptyComponent={
-          loading ? null : (
+          loading ? undefined : (
             <EmptyState
               icon="wallet-outline"
               title="No expenses yet"

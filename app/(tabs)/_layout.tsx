@@ -21,7 +21,7 @@ export default function TabsLayout() {
         options={{
           title: 'Expenses',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" color={color} size={size} />
+            <Ionicons name="wallet-outline" color={color as string} size={size} />
           )
         }}
       />
@@ -30,7 +30,7 @@ export default function TabsLayout() {
         options={{
           title: 'Chat',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles-outline" color={color} size={size} />
+            <Ionicons name="chatbubbles-outline" color={color as string} size={size} />
           )
         }}
       />
@@ -39,7 +39,7 @@ export default function TabsLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" color={color} size={size} />
+            <Ionicons name="settings-outline" color={color as string} size={size} />
           )
         }}
       />

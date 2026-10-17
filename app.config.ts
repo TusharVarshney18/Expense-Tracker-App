@@ -39,7 +39,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/icon.png',
   scheme: 'expensecounter',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
   assetBundlePatterns: ['**/*'],
 
   // iOS is configured for parity, but Google Play is the release target.
@@ -65,7 +64,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundImage: './assets/adaptive-icon-background.png',
       monochromeImage: './assets/adaptive-icon-monochrome.png'
     },
-    edgeToEdgeEnabled: true,
     softwareKeyboardLayoutMode: 'pan',
     // Only permissions the app actually uses:
     //   POST_NOTIFICATIONS   - chat / expense reminder notifications

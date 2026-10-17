@@ -116,7 +116,7 @@ export default function ChatListScreen() {
               ))}
               <Text style={[styles.sectionLabel, styles.recentLabel]}>Recent</Text>
             </View>
-          ) : null
+          ) : undefined
         }
         renderItem={({ item }) => (
           <Pressable style={styles.row} onPress={() => openChat(item.partner.id)}>
@@ -134,7 +134,7 @@ export default function ChatListScreen() {
           </Pressable>
         )}
         ListEmptyComponent={
-          loading ? null : (
+          loading ? undefined : (
             <EmptyState
               icon="chatbubbles-outline"
               title="No conversations yet"
