@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B0D12">
+  <meta name="description" content="Track expenses, split group costs and chat in one private place. Expense Counter helps money stay simple and friendships stay easy.">
+  <meta property="og:title" content="Expense Counter — Split money. Keep friendships.">
+  <meta property="og:description" content="Expenses, group splits and private chat, made for friends.">
+  <meta property="og:type" content="website">
+  <title>Expense Counter — Split money. Keep friendships.</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script>
+    // Set this once to the direct APK URL when the Android download is ready.
+    const APK_URL = '';
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[data-download]').forEach((download) => {
+        download.href = APK_URL || '#download';
+        if (!APK_URL) download.setAttribute('aria-disabled', 'true');
+      });
+    });
+  </script>
+</head>
+<body>
+  <header class="site-header shell">
+    <a class="brand" href="/" aria-label="Expense Counter home"><span class="brand-mark" aria-hidden="true">e</span><span>Expense Counter</span></a>
+    <span class="header-note">A little less money stress.</span>
+  </header>
+
+  <main>
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div class="hero-content">
+        <span class="eyebrow">Money, made easier</span>
+        <h1 id="hero-title">Expense<br><span>Counter.</span></h1>
+        <p class="hero-copy">Split money. Keep friendships. Stay on top of everyday spending, settle up with your people, and keep the conversation in one place.</p>
+        <div class="actions">
+          <a class="button" data-download href="#download">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M4.5 16.5v2A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download for Android
+          </a>
+          <a class="soft-link" href="#features">Explore the features <span aria-hidden="true">↘</span></a>
+        </div>
+        <p class="platform-note">iPhone version coming later</p>
+      </div>
+
+      <div class="hero-art" aria-label="Expense Counter app preview">
+        <div class="halo" aria-hidden="true"></div>
+        <div class="device-card">
+          <div class="device-top"><div><div class="device-label">YOUR SPENDING</div><div class="device-month">October overview</div></div><span class="device-dots" aria-hidden="true">•••</span></div>
+          <div class="balance">Monthly budget<strong>₹18,450</strong></div>
+          <div class="meter" aria-hidden="true"><span></span></div>
+          <div class="mini-list">
+            <div class="mini-row"><span class="mini-icon" aria-hidden="true">↗</span><span class="mini-details"><strong>Home dinner</strong><span>Today · Food</span></span><span class="mini-amount">₹1,280</span></div>
+            <div class="mini-row"><span class="mini-icon" aria-hidden="true">⌂</span><span class="mini-details"><strong>Weekend cabin</strong><span>Shared with 3 friends</span></span><span class="mini-amount">₹760</span></div>
+            <div class="mini-row"><span class="mini-icon" aria-hidden="true">☷</span><span class="mini-details"><strong>Settle up</strong><span>All square, no awkwardness</span></span><span class="mini-amount" style="color:var(--mint)">✓</span></div>
+          </div>
+        </div>
+        <div class="float-chip"><span class="float-check" aria-hidden="true">✓</span><span><strong>Split settled</strong><span>Everyone's all square</span></span></div>
+      </div>
+    </section>
+
+    <section class="features shell" id="features" aria-labelledby="features-title">
+      <div class="section-head">
+        <div><span class="eyebrow">The good stuff</span><h2 id="features-title">Money talk,<br>without the friction.</h2></div>
+        <p>All the little things that make shared plans and everyday spending feel simpler.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature"><span class="feature-icon" aria-hidden="true">↗</span><h3>Expenses &amp; budgets</h3><p>Log what you spend, see the month at a glance, and keep a simple budget in view.</p></article>
+        <article class="feature"><span class="feature-icon" aria-hidden="true">⇄</span><h3>Group splits &amp; settle up</h3><p>Share costs with your group, see who owes what, and record a settle-up when you're even.</p></article>
+        <article class="feature"><span class="feature-icon" aria-hidden="true">✳</span><h3>Private chat</h3><p>Talk one to one, send a message request, and keep the details with the people involved.</p></article>
+      </div>
+    </section>
+
+    <section class="closing shell" id="download" aria-label="Get Expense Counter">
+      <div><h2>Ready to make money stuff easier?</h2><p>Start with a cleaner view of spending and shared costs.</p></div>
+      <a class="button" data-download href="#download">Download for Android <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+
+  <footer class="site-footer shell">
+    <span>© <span id="year">2026</span> Expense Counter</span>
+    <nav class="footer-links" aria-label="Legal and support"><a href="/privacy-policy">Privacy Policy</a><a href="/terms">Terms</a><a href="/account-deletion">Delete Account</a><a href="mailto:tusharvarshney1810@gmail.com">Contact</a></nav>
+    <a class="made-by" href="https://x.com/Tushar_Jsx" target="_blank" rel="noopener noreferrer">Made by Tushar ↗</a>
+  </footer>
+</body>
+</html>

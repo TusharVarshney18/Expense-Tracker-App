@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B0D12">
+  <meta name="description" content="Learn what Expense Counter collects, how it is used and stored, and how to delete your account.">
+  <title>Privacy Policy — Expense Counter</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header shell"><a class="brand" href="/" aria-label="Expense Counter home"><span class="brand-mark" aria-hidden="true">e</span><span>Expense Counter</span></a><span class="header-note">Clear terms. Clear spending.</span></header>
+  <main class="legal-main"><span class="eyebrow">Expense Counter</span><article class="legal-body">
+<h1>Privacy Policy for Expense Counter</h1>
+<p><strong>Last updated: October 25, 2026</strong></p>
+<p>Expense Counter (&quot;the app&quot;, &quot;we&quot;, &quot;us&quot;) is developed and published by Tushar (&quot;the developer&quot;). This Privacy Policy explains what personal data the app collects, why we collect it, how it is stored, who it is shared with, and how you can delete it.</p>
+<p>By installing and using Expense Counter you agree to this Privacy Policy. If you do not agree, please do not use the app.</p>
+<p><strong>Contact:</strong> <a href="mailto:tusharvarshney1810@gmail.com">tusharvarshney1810@gmail.com</a> <strong>Published at:</strong> <a href="/privacy-policy">/privacy-policy</a></p>
+<hr>
+<h2>1. Summary</h2>
+<ul><li>We collect the minimum data needed to run the app: your account details, the expenses you record, shared group records, the messages and reports you send, and a device push token when notifications are enabled. Your monthly budget is stored on your device only.</li><li>We do <strong>not</strong> sell your data.</li><li>We do <strong>not</strong> show ads and we do <strong>not</strong> use your data for advertising.</li><li>We do <strong>not</strong> collect location, contacts, or health data.</li><li>You can delete your entire account and all associated data from inside the app at any time (Settings → Delete account).</li></ul>
+<hr>
+<h2>2. Data we collect</h2>
+<h3>2.1 Account data</h3>
+<table><thead><tr><th scope="col">Data</th><th scope="col">Example</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Email address</td><td><a href="mailto:you@example.com">you@example.com</a></td><td>Create and sign in to your account.</td></tr><tr><td>Display name</td><td>&quot;Tushar&quot;</td><td>Show your name to people you chat with and to members of your shared groups.</td></tr><tr><td>Profile photo (if provided by Google)</td><td>a profile image URL</td><td>Show your profile in the app.</td></tr><tr><td>Password</td><td>(stored only as a salted hash)</td><td>Authenticate you. We never see your password.</td></tr><tr><td>Optional UPI ID</td><td>name@bank</td><td>Show group members where to send an outside-app payment.</td></tr><tr><td>Terms acceptance date and version</td><td>date and version number</td><td>Record acceptance of the current Terms of Service.</td></tr></tbody></table>
+<p>Authentication is provided by Supabase. You can register with an email and password or use Google sign-in. Passwords are hashed by Supabase Auth and are never readable by the developer. If you choose Google sign-in, Google shares the account information needed to authenticate you, such as your email address, profile name, and profile photo.</p>
+<p>If you search for another user by their exact email address in chat, the app checks whether an account matches and shows that person's profile name. The address itself is not returned in search results or displayed to other users.</p>
+<h3>2.2 Expense data</h3>
+<table><thead><tr><th scope="col">Data</th><th scope="col">Example</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Amount</td><td>450.00</td><td>Record and total your expenses.</td></tr><tr><td>Category</td><td>&quot;food&quot;</td><td>Group your spending.</td></tr><tr><td>Note (optional)</td><td>&quot;Team lunch&quot;</td><td>Add context to an expense.</td></tr><tr><td>Date</td><td>2026-10-17</td><td>Order expenses chronologically.</td></tr><tr><td>Receipt photo (optional)</td><td>a JPEG image</td><td>Attach proof of purchase.</td></tr></tbody></table>
+<h3>2.3 Messages</h3>
+<table><thead><tr><th scope="col">Data</th><th scope="col">Example</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Message body</td><td>&quot;Did you get the receipt?&quot;</td><td>Deliver the in-app chat.</td></tr><tr><td>Sender / recipient IDs</td><td>user UUIDs</td><td>Route the message to the right person.</td></tr><tr><td>Timestamps &amp; read status</td><td>ISO timestamps</td><td>Show when messages were sent and read.</td></tr></tbody></table>
+<p>Message content is visible only to you and the person you are chatting with. People who do not share a group can send one message as a request. The recipient can accept or decline it. We store the request status and send a push notification to the recipient when a new request is created, if notifications are enabled on their device.</p>
+<h3>2.4 Block data</h3>
+<table><thead><tr><th scope="col">Data</th><th scope="col">Example</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Blocked account IDs</td><td>user UUIDs</td><td>Hide messages and prevent new messages between blocked users.</td></tr></tbody></table>
+<h3>2.5 Push token</h3>
+<table><thead><tr><th scope="col">Data</th><th scope="col">Example</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Expo push token</td><td>ExponentPushToken[xxxx]</td><td>Deliver push notifications for new chat requests.</td></tr></tbody></table>
+<h3>2.6 Report data</h3>
+<table><thead><tr><th scope="col">Data</th><th scope="col">Example</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Report reason</td><td>&quot;harassment&quot;</td><td>Let you report abuse and let us review it.</td></tr><tr><td>Report details (optional)</td><td>free text</td><td>Additional context for a report.</td></tr></tbody></table>
+<h3>2.7 Data we do NOT collect</h3>
+<p>Location, contacts, calendar, SMS/call logs, health data, browsing history, advertising identifiers, or crash/analytics telemetry.</p>
+<h3>2.8 Shared groups</h3>
+<table><thead><tr><th scope="col">Data</th><th scope="col">Example</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Group name and invite code</td><td>&quot;Apartment&quot; and a random code</td><td>Create groups and let invited people join.</td></tr><tr><td>Shared expense</td><td>amount in paise, description, category and date</td><td>Calculate group shares and balances.</td></tr><tr><td>Split shares</td><td>each member's integer-paise share</td><td>Show who owes or is owed money.</td></tr><tr><td>Settlement record</td><td>payer, recipient and amount in paise</td><td>Update balances after members record an outside-app payment.</td></tr><tr><td>Optional UPI ID</td><td>name@bank</td><td>Help group members identify where to send a payment.</td></tr></tbody></table>
+<p>Members of a group can see that group's expenses, splits, settlements, member display names and optional UPI IDs. An invite code gives anyone who receives it the ability to join that group.</p>
+<h3>2.9 Device-local budget</h3>
+<table><thead><tr><th scope="col">Data</th><th scope="col">Example</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Monthly budget</td><td>25,000.00</td><td>Compare your monthly spending with a budget you set.</td></tr></tbody></table>
+<p>Your monthly budget is stored only in app-local preferences on your device. It is not uploaded to our servers.</p>
+<hr>
+<h2>3. How we use your data</h2>
+<p>We use your data only to provide the app:</p>
+<ol><li><strong>Authentication</strong> — to create and secure your account.</li><li><strong>Expense tracking</strong> — to display, total and store the expenses you add.</li><li><strong>Chat</strong> — to deliver messages between you and recipients.</li><li><strong>Notifications</strong> — to alert you to new chat requests when notifications are enabled.</li><li><strong>Trust &amp; safety</strong> — to review reports of abuse and enforce our Terms.</li></ol>
+<p>Shared group data is used to calculate each member's balance and to show settle-up suggestions. A settlement is only a record of a payment members report; the app does not transfer money.</p>
+<p>We do not use your data for advertising, profiling, or any purpose other than operating the app for you.</p>
+<hr>
+<h2>4. Legal basis</h2>
+<p>Where required by law we process your data on the basis of <strong>performance of a contract</strong> (providing the app you signed up for). Optional features such as receipt photos and notifications rely on your <strong>consent</strong>, which you can withdraw at any time through your device settings or by simply not using the feature.</p>
+<hr>
+<h2>5. Storage and security</h2>
+<ul><li>Data is stored in a Supabase (PostgreSQL) database and Supabase Storage.</li><li>For offline use, the app also keeps expenses and recent messages in its local SQLite database, and stores your monthly budget in app-local preferences. The app does not enable SQLCipher for this cache; it relies on Android/iOS app sandboxing and the device's own security. Sign-out and account deletion clear this cached account data and preference. Use a device screen lock and do not share an unlocked device.</li><li>All traffic between the app and the servers is encrypted in transit (TLS).</li><li>Data is encrypted at rest by the hosting provider.</li><li>Row Level Security is enabled on every table: personal expense rows are readable only by their owner, shared group records only by group members, and messages only by their two participants. UPI IDs are available only to the account owner and members of their shared groups. Messages between a blocked user and you are hidden in both directions.</li><li>Message recipients can review, accept, or decline requests. You can block a sender or report a user; blocking declines that sender's pending request. Reports are restricted to the app's review process and cannot be read by ordinary users.</li><li>Your session is stored on-device in the platform secure storage (iOS Keychain / Android EncryptedSharedPreferences).</li><li>Receipt photos are held in a private storage bucket; each user can access only their own folder.</li></ul>
+<p>No method of transmission or storage is 100% secure, but we take reasonable measures to protect your data.</p>
+<hr>
+<h2>6. Sharing and third parties</h2>
+<p>We do not sell or rent your data. We share it only with the service providers that operate the app on our behalf, and only as far as needed:</p>
+<table><thead><tr><th scope="col">Provider</th><th scope="col">Purpose</th><th scope="col">Data involved</th></tr></thead><tbody><tr><td>Supabase</td><td>Database, authentication, file storage</td><td>All app data</td></tr><tr><td>Expo</td><td>Push notification delivery</td><td>Push token, notification content</td></tr><tr><td>Google</td><td>Optional Google sign-in and Android OS-level push delivery (FCM)</td><td>Account information returned for sign-in; push token</td></tr><tr><td>Other members of your group</td><td>Shared ledger and settle-up</td><td>Group expenses, splits, settlements, display name and optional UPI ID</td></tr></tbody></table>
+<p>These providers are bound by their own privacy policies and act as processors. We may also disclose data if required by law or to protect the rights and safety of users.</p>
+<hr>
+<h2>7. Camera, photos and biometrics</h2>
+<ul><li><strong>Camera / Photos:</strong> requested only when you choose to attach a receipt. Images are used solely for that receipt and are never captured in the background.</li><li><strong>Biometrics:</strong> the optional app lock uses Face ID / fingerprint / device passcode. Biometric data never leaves your device and is never sent to us.</li></ul>
+<hr>
+<h2>8. Data retention</h2>
+<p>We keep your data for as long as your account exists. Individual expenses can be deleted at any time; messages you send are removed together with your account. When you delete your account, the data described in section 9 is removed from the app and server, including receipt photos. Email requests are processed within 30 days.</p>
+<hr>
+<h2>9. Deleting your account and data</h2>
+<p>You can delete your account from inside the app:</p>
+<p><strong>Settings → Delete account → confirm.</strong></p>
+<p>If you cannot access the app, submit a request at <a href="/account-deletion">/account-deletion</a> or email <a href="mailto:tusharvarshney1810@gmail.com">tusharvarshney1810@gmail.com</a> from your registered email address. Requests are processed within 30 days.</p>
+<p>Deleting your account permanently removes:</p>
+<ul><li>your profile (email, display name, avatar);</li><li>all of your personal expenses and their receipt images;</li><li>all messages you have sent;</li><li>your push token;</li><li>shared expenses and settlements involving your account;</li><li>the local database stored on your device.</li></ul>
+<p>If other members remain, the group continues and another member becomes its admin. If you were the only member, the group is deleted. After deletion you are signed out and the data cannot be recovered. If you cannot access the app, email <a href="mailto:tusharvarshney1810@gmail.com">tusharvarshney1810@gmail.com</a> from your registered address and we will delete the account within 30 days.</p>
+<hr>
+<h2>10. Children</h2>
+<p>Expense Counter is not directed at children under 13, and we do not knowingly collect personal data from them. If you believe a child has provided us data, contact us and we will delete it.</p>
+<hr>
+<h2>11. International transfers</h2>
+<p>Your data may be processed on servers located outside your country. Where required, our providers rely on standard contractual clauses for such transfers.</p>
+<hr>
+<h2>12. Changes to this policy</h2>
+<p>We may update this policy from time to time. Material changes will be surfaced in the app before they take effect, and the &quot;Last updated&quot; date above will change.</p>
+<hr>
+<h2>13. Contact</h2>
+<p>For any privacy question or request:</p>
+<p><strong>Email:</strong> <a href="mailto:tusharvarshney1810@gmail.com">tusharvarshney1810@gmail.com</a></p>
+  </article></main>
+  <footer class="site-footer shell"><span>© 2026 Expense Counter</span><nav class="footer-links" aria-label="Legal and support"><a href="/privacy-policy">Privacy Policy</a><a href="/terms">Terms</a><a href="/account-deletion">Delete Account</a><a href="mailto:tusharvarshney1810@gmail.com">Contact</a></nav><a class="made-by" href="https://x.com/Tushar_Jsx" target="_blank" rel="noopener noreferrer">Made by Tushar ↗</a></footer>
+</body>
+</html>

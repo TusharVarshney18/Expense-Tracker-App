@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Text } from '@/components/ui/Text';
 import { hapticError, hapticSuccess } from '@/lib/haptics';
-import { supabase } from '@/lib/supabase';
+import { sendPasswordResetEmail } from '@/lib/supabase';
+import { getSitePageUrl } from '@/lib/site';
 import { useTheme } from '@/theme';
 
 export default function ForgotPasswordScreen() {
@@ -30,7 +31,10 @@ export default function ForgotPasswordScreen() {
     }
     setLoading(true);
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim());
+      const { error: resetError } = await sendPasswordResetEmail(
+        email.trim(),
+        getSitePageUrl('reset-password')
+      );
       if (resetError) throw resetError;
       hapticSuccess();
       setSent(true);

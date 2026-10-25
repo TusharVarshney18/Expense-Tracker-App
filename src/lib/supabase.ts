@@ -32,6 +32,24 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
+/**
+ * Send recovery links that can be redeemed by the static website. The app's
+ * normal auth client stores PKCE verifiers in native secure storage, which the
+ * browser page cannot access. A client-only implicit recovery link lets the
+ * website receive the one-time recovery session in its URL fragment.
+ */
+export function sendPasswordResetEmail(email: string, redirectTo: string) {
+  const recoveryClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      flowType: 'implicit',
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
+  return recoveryClient.auth.resetPasswordForEmail(email, { redirectTo });
+}
+
 // Supabase recommends pausing/resuming the auth refresh timer with app state
 // so tokens refresh when the app returns to the foreground.
 if (Platform.OS !== 'web') {

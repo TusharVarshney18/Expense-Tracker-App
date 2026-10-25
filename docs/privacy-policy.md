@@ -1,6 +1,6 @@
 # Privacy Policy for Expense Counter
 
-**Last updated: October 21, 2026**
+**Last updated: October 25, 2026**
 
 Expense Counter ("the app", "we", "us") is developed and published by Tushar
 ("the developer"). This Privacy Policy explains what personal data the app
@@ -11,15 +11,16 @@ By installing and using Expense Counter you agree to this Privacy Policy. If you
 do not agree, please do not use the app.
 
 **Contact:** tusharvarshney1810@gmail.com
-**Published at:** https://tushar.github.io/expense-counter/privacy-policy
+**Published at:** /privacy-policy
 
 ---
 
 ## 1. Summary
 
 - We collect the minimum data needed to run the app: your account details, the
-  expenses you record, shared group records, the messages you send, and a device
-  push token.
+  expenses you record, shared group records, the messages and reports you send,
+  and a device push token when notifications are enabled. Your monthly budget is
+  stored on your device only.
 - We do **not** sell your data.
 - We do **not** show ads and we do **not** use your data for advertising.
 - We do **not** collect location, contacts, or health data.
@@ -35,10 +36,16 @@ do not agree, please do not use the app.
 | --- | --- | --- |
 | Email address | you@example.com | Create and sign in to your account. |
 | Display name | "Tushar" | Show your name to people you chat with and to members of your shared groups. |
+| Profile photo (if provided by Google) | a profile image URL | Show your profile in the app. |
 | Password | (stored only as a salted hash) | Authenticate you. We never see your password. |
+| Optional UPI ID | name@bank | Show group members where to send an outside-app payment. |
+| Terms acceptance date and version | date and version number | Record acceptance of the current Terms of Service. |
 
-Authentication is provided by Supabase. Passwords are hashed by Supabase Auth
-and are never readable by the developer.
+Authentication is provided by Supabase. You can register with an email and
+password or use Google sign-in. Passwords are hashed by Supabase Auth and are
+never readable by the developer. If you choose Google sign-in, Google shares the
+account information needed to authenticate you, such as your email address,
+profile name, and profile photo.
 
 If you search for another user by their exact email address in chat, the app
 checks whether an account matches and shows that person's profile name. The
@@ -66,22 +73,27 @@ recipient can accept or decline it. We store the request status and send a push
 notification to the recipient when a new request is created, if notifications
 are enabled on their device.
 
-### 2.4 Push token
+### 2.4 Block data
 | Data | Example | Why |
 | --- | --- | --- |
-| Expo push token | ExponentPushToken[xxxx] | Deliver notifications for new messages and expense reminders. |
+| Blocked account IDs | user UUIDs | Hide messages and prevent new messages between blocked users. |
 
-### 2.5 Report data
+### 2.5 Push token
+| Data | Example | Why |
+| --- | --- | --- |
+| Expo push token | ExponentPushToken[xxxx] | Deliver push notifications for new chat requests. |
+
+### 2.6 Report data
 | Data | Example | Why |
 | --- | --- | --- |
 | Report reason | "harassment" | Let you report abuse and let us review it. |
 | Report details (optional) | free text | Additional context for a report. |
 
-### 2.6 Data we do NOT collect
+### 2.7 Data we do NOT collect
 Location, contacts, calendar, SMS/call logs, health data, browsing history,
 advertising identifiers, or crash/analytics telemetry.
 
-### 2.7 Shared groups
+### 2.8 Shared groups
 | Data | Example | Why |
 | --- | --- | --- |
 | Group name and invite code | "Apartment" and a random code | Create groups and let invited people join. |
@@ -94,6 +106,14 @@ Members of a group can see that group's expenses, splits, settlements, member
 display names and optional UPI IDs. An invite code gives anyone who receives it
 the ability to join that group.
 
+### 2.9 Device-local budget
+| Data | Example | Why |
+| --- | --- | --- |
+| Monthly budget | 25,000.00 | Compare your monthly spending with a budget you set. |
+
+Your monthly budget is stored only in app-local preferences on your device. It
+is not uploaded to our servers.
+
 ---
 
 ## 3. How we use your data
@@ -103,7 +123,7 @@ We use your data only to provide the app:
 1. **Authentication** — to create and secure your account.
 2. **Expense tracking** — to display, total and store the expenses you add.
 3. **Chat** — to deliver messages between you and recipients.
-4. **Notifications** — to alert you to new messages and reminders you opted into.
+4. **Notifications** — to alert you to new chat requests when notifications are enabled.
 5. **Trust & safety** — to review reports of abuse and enforce our Terms.
 
 Shared group data is used to calculate each member's balance and to show settle-up
@@ -163,7 +183,7 @@ that operate the app on our behalf, and only as far as needed:
 | --- | --- | --- |
 | Supabase | Database, authentication, file storage | All app data |
 | Expo | Push notification delivery | Push token, notification content |
-| Google (Android) | OS-level push delivery (FCM) | Push token |
+| Google | Optional Google sign-in and Android OS-level push delivery (FCM) | Account information returned for sign-in; push token |
 | Other members of your group | Shared ledger and settle-up | Group expenses, splits, settlements, display name and optional UPI ID |
 
 These providers are bound by their own privacy policies and act as processors.
@@ -198,7 +218,7 @@ You can delete your account from inside the app:
 **Settings → Delete account → confirm.**
 
 If you cannot access the app, submit a request at
-https://tushar.github.io/expense-counter/account-deletion or email
+/account-deletion or email
 tusharvarshney1810@gmail.com from your registered email address. Requests are
 processed within 30 days.
 

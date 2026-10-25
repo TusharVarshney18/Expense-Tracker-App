@@ -16,6 +16,7 @@ import { authenticateBiometric, getBiometricEnabled } from '@/lib/biometrics';
 import { deleteAccount as deleteAccountService } from '@/services/account';
 import { wipeLocalUserData } from '@/lib/db';
 import { clearAllLocalBudgets, clearLocalBudget } from '@/lib/localBudget';
+import { getSitePageUrl } from '@/lib/site';
 import { TERMS_VERSION } from '@/content/legal';
 
 interface AuthContextValue {
@@ -133,7 +134,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName, terms_version: TERMS_VERSION } }
+        options: {
+          data: { full_name: fullName, terms_version: TERMS_VERSION },
+          emailRedirectTo: getSitePageUrl('confirmed')
+        }
       });
       if (error) throw error;
     },

@@ -31,4 +31,4 @@ outside the app.
 
 **Contact:** tusharvarshney1810@gmail.com
 
-**Privacy Policy:** https://tushar.github.io/expense-counter/privacy-policy
+**Privacy Policy:** /privacy-policy

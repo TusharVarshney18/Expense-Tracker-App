@@ -8,7 +8,7 @@ accept these Terms before creating an account or sending messages. If the Terms
 are updated, you may need to accept the current version before using chat again.
 
 **Contact:** tusharvarshney1810@gmail.com
-**Published at:** https://tushar.github.io/expense-counter/terms
+**Published at:** /terms
 
 ---
 
@@ -76,7 +76,7 @@ without permission.
 ## 8. Privacy
 
 Our handling of your data is described in the Privacy Policy, which forms part of
-these Terms: https://tushar.github.io/expense-counter/privacy-policy
+these Terms: /privacy-policy
 
 ## 9. Availability
 
