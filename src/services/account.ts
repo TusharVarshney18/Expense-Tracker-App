@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import { clearPushToken } from '@/lib/notifications';
 import { wipeLocalData } from '@/lib/db';
+import { removeAllReceiptObjects } from '@/lib/receipts';
+import { clearLocalBudget } from '@/lib/localBudget';
 
 /**
  * Server-side + local wipe for the Delete Account flow.
@@ -15,6 +17,7 @@ import { wipeLocalData } from '@/lib/db';
  */
 export async function deleteAccount(userId: string): Promise<void> {
   await clearPushToken(userId);
+  await removeAllReceiptObjects(userId);
 
   const { error } = await supabase.rpc('delete_account');
   if (error) {
@@ -22,5 +25,6 @@ export async function deleteAccount(userId: string): Promise<void> {
   }
 
   await wipeLocalData();
+  await clearLocalBudget(userId);
   await supabase.auth.signOut();
 }

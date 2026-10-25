@@ -1,5 +1,6 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { AndroidImportance } from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -26,9 +27,9 @@ export async function configureAndroidChannel(): Promise<void> {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(DEFAULT_CHANNEL_ID, {
     name: 'General',
-    importance: Notifications.AndroidImportance.HIGH,
+    importance: AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#0F766E'
+    lightColor: '#3DDC97'
   });
 }
 

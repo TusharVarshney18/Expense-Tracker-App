@@ -1,6 +1,6 @@
 # Privacy Policy for Expense Counter
 
-**Last updated: October 17, 2026**
+**Last updated: October 21, 2026**
 
 Expense Counter ("the app", "we", "us") is developed and published by Tushar
 ("the developer"). This Privacy Policy explains what personal data the app
@@ -10,7 +10,7 @@ you can delete it.
 By installing and using Expense Counter you agree to this Privacy Policy. If you
 do not agree, please do not use the app.
 
-**Contact:** tushar.expensecounter@gmail.com
+**Contact:** tusharvarshney1810@gmail.com
 **Published at:** https://tushar.github.io/expense-counter/privacy-policy
 
 ---
@@ -18,7 +18,8 @@ do not agree, please do not use the app.
 ## 1. Summary
 
 - We collect the minimum data needed to run the app: your account details, the
-  expenses you record, the messages you send, and a device push token.
+  expenses you record, shared group records, the messages you send, and a device
+  push token.
 - We do **not** sell your data.
 - We do **not** show ads and we do **not** use your data for advertising.
 - We do **not** collect location, contacts, or health data.
@@ -33,11 +34,15 @@ do not agree, please do not use the app.
 | Data | Example | Why |
 | --- | --- | --- |
 | Email address | you@example.com | Create and sign in to your account. |
-| Display name | "Tushar" | Show your name to people you chat with. |
+| Display name | "Tushar" | Show your name to people you chat with and to members of your shared groups. |
 | Password | (stored only as a salted hash) | Authenticate you. We never see your password. |
 
 Authentication is provided by Supabase. Passwords are hashed by Supabase Auth
 and are never readable by the developer.
+
+If you search for another user by their exact email address in chat, the app
+checks whether an account matches and shows that person's profile name. The
+address itself is not returned in search results or displayed to other users.
 
 ### 2.2 Expense data
 | Data | Example | Why |
@@ -56,6 +61,10 @@ and are never readable by the developer.
 | Timestamps & read status | ISO timestamps | Show when messages were sent and read. |
 
 Message content is visible only to you and the person you are chatting with.
+People who do not share a group can send one message as a request. The
+recipient can accept or decline it. We store the request status and send a push
+notification to the recipient when a new request is created, if notifications
+are enabled on their device.
 
 ### 2.4 Push token
 | Data | Example | Why |
@@ -72,6 +81,19 @@ Message content is visible only to you and the person you are chatting with.
 Location, contacts, calendar, SMS/call logs, health data, browsing history,
 advertising identifiers, or crash/analytics telemetry.
 
+### 2.7 Shared groups
+| Data | Example | Why |
+| --- | --- | --- |
+| Group name and invite code | "Apartment" and a random code | Create groups and let invited people join. |
+| Shared expense | amount in paise, description, category and date | Calculate group shares and balances. |
+| Split shares | each member's integer-paise share | Show who owes or is owed money. |
+| Settlement record | payer, recipient and amount in paise | Update balances after members record an outside-app payment. |
+| Optional UPI ID | name@bank | Help group members identify where to send a payment. |
+
+Members of a group can see that group's expenses, splits, settlements, member
+display names and optional UPI IDs. An invite code gives anyone who receives it
+the ability to join that group.
+
 ---
 
 ## 3. How we use your data
@@ -83,6 +105,10 @@ We use your data only to provide the app:
 3. **Chat** — to deliver messages between you and recipients.
 4. **Notifications** — to alert you to new messages and reminders you opted into.
 5. **Trust & safety** — to review reports of abuse and enforce our Terms.
+
+Shared group data is used to calculate each member's balance and to show settle-up
+suggestions. A settlement is only a record of a payment members report; the app
+does not transfer money.
 
 We do not use your data for advertising, profiling, or any purpose other than
 operating the app for you.
@@ -101,11 +127,23 @@ at any time through your device settings or by simply not using the feature.
 ## 5. Storage and security
 
 - Data is stored in a Supabase (PostgreSQL) database and Supabase Storage.
+- For offline use, the app also keeps expenses and recent messages in its local
+  SQLite database, and stores your monthly budget in app-local preferences. The
+  app does not enable SQLCipher for this cache; it relies
+  on Android/iOS app sandboxing and the device's own security. Sign-out and
+  account deletion clear this cached account data and preference. Use a device
+  screen lock and do not share an unlocked device.
 - All traffic between the app and the servers is encrypted in transit (TLS).
 - Data is encrypted at rest by the hosting provider.
-- Row Level Security is enabled on every table: expense rows are readable only
-  by their owner, and messages only by their two participants. Messages between
-  a blocked user and you are hidden in both directions.
+- Row Level Security is enabled on every table: personal expense rows are
+  readable only by their owner, shared group records only by group members, and
+  messages only by their two participants. UPI IDs are available only to the
+  account owner and members of their shared groups. Messages between a blocked
+  user and you are hidden in both directions.
+- Message recipients can review, accept, or decline requests. You can block a
+  sender or report a user; blocking declines that sender's pending request.
+  Reports are restricted to the app's review process and cannot be read by
+  ordinary users.
 - Your session is stored on-device in the platform secure storage (iOS Keychain
   / Android EncryptedSharedPreferences).
 - Receipt photos are held in a private storage bucket; each user can access only
@@ -126,6 +164,7 @@ that operate the app on our behalf, and only as far as needed:
 | Supabase | Database, authentication, file storage | All app data |
 | Expo | Push notification delivery | Push token, notification content |
 | Google (Android) | OS-level push delivery (FCM) | Push token |
+| Other members of your group | Shared ledger and settle-up | Group expenses, splits, settlements, display name and optional UPI ID |
 
 These providers are bound by their own privacy policies and act as processors.
 We may also disclose data if required by law or to protect the rights and safety
@@ -146,8 +185,9 @@ of users.
 
 We keep your data for as long as your account exists. Individual expenses can be
 deleted at any time; messages you send are removed together with your account.
-When you delete your account, the data described in section 9 is erased
-immediately.
+When you delete your account, the data described in section 9 is removed from
+the app and server, including receipt photos. Email requests are processed
+within 30 days.
 
 ---
 
@@ -157,16 +197,24 @@ You can delete your account from inside the app:
 
 **Settings → Delete account → confirm.**
 
+If you cannot access the app, submit a request at
+https://tushar.github.io/expense-counter/account-deletion or email
+tusharvarshney1810@gmail.com from your registered email address. Requests are
+processed within 30 days.
+
 Deleting your account permanently removes:
 
 - your profile (email, display name, avatar);
 - all of your personal expenses and their receipt images;
 - all messages you have sent;
 - your push token;
+- shared expenses and settlements involving your account;
 - the local database stored on your device.
 
-After deletion you are signed out and the data cannot be recovered. If you
-cannot access the app, email tushar.expensecounter@gmail.com from your
+If other members remain, the group continues and another member becomes its
+admin. If you were the only member, the group is deleted. After deletion you are
+signed out and the data cannot be recovered. If you
+cannot access the app, email tusharvarshney1810@gmail.com from your
 registered address and we will delete the account within 30 days.
 
 ---
@@ -197,4 +245,4 @@ the app before they take effect, and the "Last updated" date above will change.
 
 For any privacy question or request:
 
-**Email:** tushar.expensecounter@gmail.com
+**Email:** tusharvarshney1810@gmail.com

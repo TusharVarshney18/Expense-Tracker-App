@@ -24,6 +24,8 @@ export function useBlockedUsers() {
   }, [user]);
 
   useEffect(() => {
+    // This effect starts an async data load; the state updates belong to that request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 

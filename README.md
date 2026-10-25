@@ -11,7 +11,9 @@ A private expense tracker with receipt photos and 1:1 chat, built with Expo
 
 - Expense tracking with categories, notes and optional receipt photos.
 - Shared groups with invite codes, equal expense splits, balances and settle-up records.
-- Offline-first: expenses are cached in local SQLite.
+- Offline-first: expenses are cached in local SQLite on native and in
+  AsyncStorage on web. (`expo-sqlite`'s web OPFS backend allows only one tab at
+  a time, so web uses `src/lib/db.web.ts` instead.)
 - Private 1:1 chat with **report** and **block** (blocked messages hidden in both
   directions via Row Level Security).
 - Optional biometric app lock.

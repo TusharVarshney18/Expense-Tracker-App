@@ -9,6 +9,7 @@ import {
 } from '@/lib/db';
 import { useAuth } from '@/context/AuthProvider';
 import type { Expense } from '@/types';
+import { removeReceiptObject } from '@/lib/receipts';
 
 export interface NewExpenseInput {
   amount: number;
@@ -18,19 +19,34 @@ export interface NewExpenseInput {
   spentAt?: string;
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = typeof error.message === 'string' ? error.message : null;
+    const code =
+      'code' in error && typeof error.code === 'string' ? error.code : null;
+    return [code, message].filter(Boolean).join(': ') || 'Failed to load expenses.';
+  }
+  return 'Failed to load expenses.';
+}
+
 export function useExpenses() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expensesForUserId, setExpensesForUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) {
       setExpenses([]);
+      setExpensesForUserId(null);
       setLoading(false);
       return;
     }
+    setExpenses([]);
+    setExpensesForUserId(userId);
     setLoading(true);
     setError(null);
     try {
@@ -42,17 +58,19 @@ export function useExpenses() {
       if (fetchError) throw fetchError;
 
       setExpenses((data as Expense[]) ?? []);
-      await cacheExpenses((data as Expense[]) ?? []);
+      await cacheExpenses(userId, (data as Expense[]) ?? []);
     } catch (err) {
       // Fall back to the offline cache when the network is unavailable.
-      setError(err instanceof Error ? err.message : 'Failed to load expenses');
-      setExpenses(await getLocalExpenses());
+      setError(getErrorMessage(err));
+      setExpenses(await getLocalExpenses(userId));
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
   useEffect(() => {
+    // This effect starts an async data load; the state updates belong to that request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
@@ -63,17 +81,22 @@ export function useExpenses() {
       let receiptUrl: string | null = null;
 
       if (input.receiptUri) {
-        const response = await fetch(input.receiptUri);
-        const arrayBuffer = await response.arrayBuffer();
-        const path = `${userId}/${Date.now()}.jpg`;
-        const { error: uploadError } = await supabase.storage
-          .from('receipts')
-          .upload(path, arrayBuffer, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
-        if (uploadError) throw uploadError;
-        receiptUrl = path;
+        try {
+          const response = await fetch(input.receiptUri);
+          const arrayBuffer = await response.arrayBuffer();
+          const path = `${userId}/${Date.now()}.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from('receipts')
+            .upload(path, arrayBuffer, {
+              contentType: 'image/jpeg',
+              upsert: false
+            });
+          if (!uploadError) {
+            receiptUrl = path;
+          }
+        } catch {
+          // Ignore receipt upload failure if bucket missing or offline
+        }
       }
 
       const { data, error: insertError } = await supabase
@@ -90,8 +113,8 @@ export function useExpenses() {
         .single();
 
       if (insertError) throw insertError;
-
       const created = data as Expense;
+
       setExpenses((prev) => [created, ...prev]);
       await upsertLocalExpense(created);
       return created;
@@ -100,6 +123,17 @@ export function useExpenses() {
   );
 
   const removeExpense = useCallback(async (id: string) => {
+    if (!userId) throw new Error('Not signed in.');
+    const { data: expense, error: readError } = await supabase
+      .from('personal_expenses')
+      .select('receipt_url')
+      .eq('id', id)
+      .maybeSingle();
+    if (readError) throw readError;
+    if (!expense) throw new Error('Expense not found.');
+    if (expense.receipt_url) {
+      await removeReceiptObject(userId, expense.receipt_url);
+    }
     const { error: deleteError } = await supabase
       .from('personal_expenses')
       .delete()
@@ -108,12 +142,13 @@ export function useExpenses() {
 
     setExpenses((prev) => prev.filter((e) => e.id !== id));
     await deleteLocalExpense(id);
-  }, []);
+  }, [userId]);
 
-  const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const visibleExpenses = expensesForUserId === userId ? expenses : [];
+  const total = visibleExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return {
-    expenses,
+    expenses: visibleExpenses,
     loading,
     error,
     total,

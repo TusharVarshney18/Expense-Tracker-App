@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View
-} from 'react-native';
+import { View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { Button } from '@/components/Button';
-import { TextField } from '@/components/TextField';
-import { COLORS, REPORT_REASONS } from '@/lib/constants';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { ResponsiveActions } from '@/components/ui/ResponsiveActions';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { Input } from '@/components/ui/Input';
+import { PressableScale } from '@/components/ui/PressableScale';
+import { Text } from '@/components/ui/Text';
+import { REPORT_REASONS } from '@/lib/constants';
+import { hapticError, hapticSuccess } from '@/lib/haptics';
+import { useTheme } from '@/theme';
 import type { ReportReason } from '@/types';
 
 interface ReportModalProps {
@@ -20,6 +20,7 @@ interface ReportModalProps {
 }
 
 export function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
+  const { colors, spacing, radius } = useTheme();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -40,115 +41,93 @@ export function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
   const handleSubmit = async () => {
     if (!reason) {
       setError('Please choose a reason.');
+      hapticError();
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
       await onSubmit(reason, details.trim());
+      hapticSuccess();
       reset();
       onClose();
     } catch (err) {
+      hapticError();
       setError(err instanceof Error ? err.message : 'Could not submit report.');
       setSubmitting(false);
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text style={styles.title}>Report this conversation</Text>
-          <Text style={styles.subtitle}>
-            Your report is confidential. Repeated abuse may lead to the account
-            being removed.
-          </Text>
-
-          {REPORT_REASONS.map((option) => {
-            const selected = reason === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                onPress={() => setReason(option.value)}
-                style={[styles.option, selected && styles.optionSelected]}
-              >
-                <View style={[styles.radio, selected && styles.radioSelected]} />
-                <Text style={styles.optionLabel}>{option.label}</Text>
-              </Pressable>
-            );
-          })}
-
-          <TextField
-            label="Additional details (optional)"
-            value={details}
-            onChangeText={setDetails}
-            placeholder="Tell us what happened"
-            multiline
-            numberOfLines={3}
-            style={styles.details}
-          />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <View style={styles.actions}>
-            <Button
-              label="Cancel"
-              variant="secondary"
-              onPress={handleClose}
-              style={styles.actionBtn}
+    <BottomSheet
+      visible={visible}
+      onClose={handleClose}
+      title="Report this conversation"
+      subtitle="Your report is confidential. Repeated abuse may lead to the account being removed."
+      footer={
+        <ResponsiveActions
+          primaryLabel="Submit report"
+          primaryVariant="danger"
+          onPrimaryPress={() => void handleSubmit()}
+          primaryLoading={submitting}
+          secondaryLabel="Cancel"
+          secondaryVariant="secondary"
+          onSecondaryPress={handleClose}
+          disabled={submitting}
+        />
+      }
+    >
+      {REPORT_REASONS.map((option) => {
+        const selected = reason === option.value;
+        return (
+          <PressableScale
+            key={option.value}
+            onPress={() => {
+              setReason(option.value);
+              setError(null);
+            }}
+            accessibilityLabel={option.label}
+            accessibilityState={{ selected }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.md,
+              minHeight: 52,
+              paddingHorizontal: spacing.md,
+              borderRadius: radius.input,
+              borderWidth: 1,
+              borderColor: selected ? `${colors.danger}66` : colors.border,
+              backgroundColor: selected ? colors.dangerSoft : colors.surface,
+              marginBottom: spacing.sm
+            }}
+          >
+            <Ionicons
+              name={selected ? 'radio-button-on' : 'radio-button-off'}
+              size={20}
+              color={selected ? colors.danger : colors.textMuted}
             />
-            <Button
-              label="Submit report"
-              variant="danger"
-              onPress={handleSubmit}
-              loading={submitting}
-              style={styles.actionBtn}
-            />
-          </View>
+            <Text variant="bodyStrong" color={selected ? colors.danger : colors.text} style={{ flex: 1 }}>
+              {option.label}
+            </Text>
+          </PressableScale>
+        );
+      })}
+
+      <Input
+        label="Additional details (optional)"
+        value={details}
+        onChangeText={setDetails}
+        placeholder="Tell us what happened"
+        multiline
+        numberOfLines={3}
+        containerStyle={{ marginTop: spacing.md, marginBottom: 0 }}
+      />
+
+      {error ? (
+        <View style={{ marginTop: spacing.md }}>
+          <ErrorBanner message={error} title="Could not submit report" />
         </View>
-      </View>
-    </Modal>
+      ) : null}
+    </BottomSheet>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.5)',
-    justifyContent: 'flex-end'
-  },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 32
-  },
-  title: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  subtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 4, marginBottom: 16 },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 8
-  },
-  optionSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryTint },
-  radio: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: COLORS.textMuted,
-    marginRight: 12
-  },
-  radioSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
-  optionLabel: { fontSize: 15, color: COLORS.text, flex: 1 },
-  details: { height: 84, textAlignVertical: 'top', paddingTop: 12 },
-  error: { color: COLORS.danger, fontSize: 13, marginBottom: 8 },
-  actions: { flexDirection: 'row', gap: 12 },
-  actionBtn: { flex: 1 }
-});

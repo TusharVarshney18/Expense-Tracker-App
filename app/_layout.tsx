@@ -1,23 +1,25 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-import { Ionicons } from '@expo/vector-icons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/context/AuthProvider';
-import { Button } from '@/components/Button';
-import { COLORS } from '@/lib/constants';
+import { BrandMark } from '@/components/BrandMark';
+import { LockScreen } from '@/components/LockScreen';
+import { Text } from '@/components/ui/Text';
 import { configureAndroidChannel } from '@/lib/notifications';
+import { ThemeProvider, useTheme } from '@/theme';
+import { useAppFonts } from '@/theme/useAppFonts';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* already prevented */
 });
 
-/** Redirects between the auth group and the app based on session state. */
 function useProtectedRoute() {
-  const { session, initializing } = useAuth();
+  const { session, initializing, termsAccepted } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -27,46 +29,34 @@ function useProtectedRoute() {
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/sign-in');
-    } else if (session && inAuthGroup) {
+    } else if (session && !termsAccepted && segments[0] !== 'legal') {
+      router.replace('/legal/accept-terms');
+    } else if (session && termsAccepted && (inAuthGroup || (segments[0] === 'legal' && segments[1] === 'accept-terms'))) {
       router.replace('/(tabs)');
     }
-  }, [session, initializing, segments, router]);
+  }, [session, initializing, termsAccepted, segments, router]);
 }
 
-/** Full-screen biometric gate shown when the app lock is enabled. */
-function LockScreen() {
-  const { unlock, signOut } = useAuth();
-  return (
-    <View style={styles.lock}>
-      <Ionicons name="lock-closed" size={56} color={COLORS.primary} />
-      <Text style={styles.lockTitle}>Expense Counter is locked</Text>
-      <Text style={styles.lockMessage}>
-        Unlock with your biometrics or device passcode to continue.
-      </Text>
-      <View style={styles.lockActions}>
-        <Button label="Unlock" onPress={() => void unlock()} />
-        <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
-      </View>
-    </View>
-  );
-}
-
-function RootNavigator() {
+function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { initializing, locked } = useAuth();
+  const { colors, fonts, typography } = useTheme();
   useProtectedRoute();
 
   useEffect(() => {
-    if (!initializing) {
+    if (!initializing && fontsReady) {
       SplashScreen.hideAsync().catch(() => {
         /* no-op */
       });
     }
-  }, [initializing]);
+  }, [fontsReady, initializing]);
 
-  if (initializing) {
+  if (initializing || !fontsReady) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, gap: 16 }}>
+        <BrandMark size={64} />
+        <Text variant="caption" color={colors.textMuted}>
+          Preparing your money…
+        </Text>
       </View>
     );
   }
@@ -79,69 +69,64 @@ function RootNavigator() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: COLORS.background },
-        headerTintColor: COLORS.primaryDark,
-        headerStyle: { backgroundColor: COLORS.surface }
+        contentStyle: { backgroundColor: colors.background },
+        headerTintColor: colors.text,
+        headerStyle: { backgroundColor: colors.background },
+        headerShadowVisible: false,
+        headerTitleStyle: {
+          fontFamily: fonts.semibold,
+          fontSize: typography.subtitle.fontSize,
+          color: colors.text
+        },
+        headerBackButtonDisplayMode: 'minimal',
+        animation: 'slide_from_right'
       }}
     >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="chat/[id]"
-        options={{ headerShown: true, title: 'Chat' }}
-      />
+      <Stack.Screen name="group/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="chat/[id]" options={{ headerShown: true, title: 'Chat' }} />
       <Stack.Screen
         name="expense/new"
-        options={{ headerShown: true, title: 'New expense', presentation: 'modal' }}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom'
+        }}
       />
-      <Stack.Screen
-        name="legal/privacy"
-        options={{ headerShown: true, title: 'Privacy Policy' }}
-      />
-      <Stack.Screen
-        name="legal/terms"
-        options={{ headerShown: true, title: 'Terms of Service' }}
-      />
+      <Stack.Screen name="legal/privacy" options={{ headerShown: true, title: 'Privacy Policy' }} />
+      <Stack.Screen name="legal/terms" options={{ headerShown: true, title: 'Terms of Service' }} />
+      <Stack.Screen name="legal/accept-terms" options={{ headerShown: false, gestureEnabled: false }} />
     </Stack>
   );
 }
 
+function ThemedApp({ fontsReady }: { fontsReady: boolean }) {
+  const { statusBarStyle } = useTheme();
+  return (
+    <>
+      <StatusBar style={statusBarStyle} />
+      <RootNavigator fontsReady={fontsReady} />
+    </>
+  );
+}
+
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useAppFonts();
+
   useEffect(() => {
     void configureAndroidChannel();
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style="dark" />
-        <RootNavigator />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <ThemedApp fontsReady={fontsLoaded || Boolean(fontError)} />
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.background
-  },
-  lock: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    backgroundColor: COLORS.background
-  },
-  lockTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginTop: 16 },
-  lockMessage: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20
-  },
-  lockActions: { marginTop: 28, gap: 12, alignSelf: 'stretch' }
-});

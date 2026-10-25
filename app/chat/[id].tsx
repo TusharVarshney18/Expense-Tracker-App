@@ -4,34 +4,54 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
-  StyleSheet,
-  Text,
   TextInput,
   View
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { format, isSameDay, isToday, isYesterday, parseISO } from 'date-fns';
 
-import { Screen } from '@/components/Screen';
 import { MessageBubble } from '@/components/MessageBubble';
 import { ReportModal } from '@/components/ReportModal';
-import { EmptyState } from '@/components/EmptyState';
+import {
+  EmptyState,
+  ErrorBanner,
+  IconButton,
+  PressableScale,
+  Screen,
+  SkeletonList,
+  Text
+} from '@/components/ui';
 import { useAuth } from '@/context/AuthProvider';
-import { useMessages } from '@/hooks/useMessages';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
-import { reportUser, blockUser } from '@/services/moderation';
+import { useMessages } from '@/hooks/useMessages';
+import { hapticError } from '@/lib/haptics';
 import { supabase } from '@/lib/supabase';
-import { COLORS } from '@/lib/constants';
+import { reportUser } from '@/services/moderation';
+import { useTheme } from '@/theme';
 import type { Message, ReportReason } from '@/types';
+
+function dayLabel(value: string): string {
+  const date = parseISO(value);
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  return format(date, 'EEEE, d MMM');
+}
+
+function sameRun(a: Message | undefined, b: Message | undefined): boolean {
+  if (!a || !b) return false;
+  if (a.sender_id !== b.sender_id) return false;
+  return Math.abs(parseISO(b.created_at).getTime() - parseISO(a.created_at).getTime()) < 5 * 60 * 1000;
+}
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const partnerId = id ?? null;
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, spacing, radius, fonts } = useTheme();
 
-  const { messages, sendMessage, loading, reload } = useMessages(partnerId);
+  const { messages, conversation, error: messagesError, sendMessage, loading, reload } = useMessages(partnerId);
   const { blockedIds, block, unblock, refresh } = useBlockedUsers();
 
   const [partnerName, setPartnerName] = useState('Chat');
@@ -41,16 +61,28 @@ export default function ChatScreen() {
   const listRef = useRef<FlatList<Message>>(null);
 
   const isBlocked = partnerId ? blockedIds.includes(partnerId) : false;
+  const isPending = conversation?.status === 'pending';
+  const isDeclined = conversation?.status === 'declined';
+  const canSend = Boolean(conversation?.status === 'accepted') && !isBlocked;
+  const composerNote = isBlocked
+    ? 'Unblock to send messages'
+    : isPending
+      ? 'Request sent — waiting for them to accept'
+      : isDeclined
+        ? 'This conversation was declined'
+        : !conversation
+          ? 'Start the conversation from Chats'
+          : 'Message';
 
   useEffect(() => {
     if (!partnerId) return;
     void (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('full_name, email')
+        .select('full_name')
         .eq('id', partnerId)
         .maybeSingle();
-      setPartnerName(data?.full_name ?? data?.email ?? 'Chat');
+      setPartnerName(data?.full_name ?? 'Chat');
     })();
   }, [partnerId]);
 
@@ -67,6 +99,7 @@ export default function ChatScreen() {
       await sendMessage(text);
       setDraft('');
     } catch (err) {
+      hapticError();
       Alert.alert('Message not sent', err instanceof Error ? err.message : 'Try again.');
     } finally {
       setSending(false);
@@ -78,12 +111,13 @@ export default function ChatScreen() {
       if (!partnerId) return;
       await reportUser({
         reportedUserId: partnerId,
+        conversationId: conversation?.id,
         reason,
         details: details || null
       });
       Alert.alert('Report submitted', 'Thank you. We review every report.');
     },
-    [partnerId]
+    [partnerId, conversation?.id]
   );
 
   const handleBlockToggle = useCallback(() => {
@@ -145,44 +179,139 @@ export default function ChatScreen() {
         options={{
           title: partnerName,
           headerRight: () => (
-            <Pressable onPress={openMenu} hitSlop={12} accessibilityLabel="Conversation options">
-              <Ionicons name="ellipsis-vertical" size={22} color={COLORS.primaryDark} />
-            </Pressable>
+            <IconButton
+              icon="ellipsis-vertical"
+              label="Conversation options"
+              variant="ghost"
+              onPress={openMenu}
+            />
           )
         }}
       />
 
       {isBlocked ? (
-        <View style={styles.blockedBanner}>
-          <Ionicons name="ban" size={16} color={COLORS.danger} />
-          <Text style={styles.blockedBannerText}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            backgroundColor: colors.dangerSoft,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.sm,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border
+          }}
+        >
+          <Ionicons name="ban" size={16} color={colors.danger} />
+          <Text variant="caption" color={colors.danger} style={{ flex: 1 }}>
             You blocked this user. Messages are hidden and you cannot send more.
+          </Text>
+        </View>
+      ) : isPending ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            backgroundColor: colors.warningSoft,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.sm,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border
+          }}
+        >
+          <Ionicons name="paper-plane-outline" size={16} color={colors.warning} />
+          <Text variant="caption" color={colors.warning} style={{ flex: 1 }}>
+            {conversation?.requested_by === user?.id
+              ? `Waiting for ${partnerName} to accept your message request.`
+              : 'Accept this request from the Chats tab before replying.'}
+          </Text>
+        </View>
+      ) : isDeclined ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            backgroundColor: colors.surfaceSunken,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.sm,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border
+          }}
+        >
+          <Ionicons name="close-circle-outline" size={16} color={colors.textMuted} />
+          <Text variant="caption" color={colors.textMuted} style={{ flex: 1 }}>
+            {conversation?.requested_by === user?.id
+              ? `${partnerName} declined your message request.`
+              : 'This message request was declined.'}
           </Text>
         </View>
       ) : null}
 
+      {messagesError ? (
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
+          <ErrorBanner message={messagesError} title="Could not sync messages" onRetry={() => void reload()} />
+        </View>
+      ) : null}
+
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 92 : 0}
       >
         <FlatList
           ref={listRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messages}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.sm,
+            paddingBottom: spacing.md,
+            flexGrow: 1
+          }}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-          renderItem={({ item }) => (
-            <MessageBubble
-              message={item}
-              isOwn={item.sender_id === user?.id}
-              onLongPress={() => {
-                if (item.sender_id !== user?.id) setReportVisible(true);
-              }}
-            />
-          )}
+          renderItem={({ item, index }) => {
+            const previous = messages[index - 1];
+            const next = messages[index + 1];
+            const firstInGroup = !sameRun(previous, item);
+            const lastInGroup = !sameRun(item, next);
+            const showDay = !previous || !isSameDay(parseISO(previous.created_at), parseISO(item.created_at));
+            return (
+              <View>
+                {showDay ? (
+                  <View style={{ alignItems: 'center', marginVertical: spacing.md }}>
+                    <View
+                      style={{
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: 4,
+                        borderRadius: radius.pill,
+                        backgroundColor: colors.surfaceSunken
+                      }}
+                    >
+                      <Text variant="caption" color={colors.textMuted} style={{ fontSize: 10 }}>
+                        {dayLabel(item.created_at)}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+                <MessageBubble
+                  message={item}
+                  isOwn={item.sender_id === user?.id}
+                  firstInGroup={firstInGroup}
+                  lastInGroup={lastInGroup}
+                  senderName={partnerName}
+                  onLongPress={() => {
+                    if (item.sender_id !== user?.id) setReportVisible(true);
+                  }}
+                />
+              </View>
+            );
+          }}
           ListEmptyComponent={
-            loading ? undefined : (
+            loading ? (
+              <SkeletonList rows={4} avatar={false} />
+            ) : (
               <EmptyState
                 icon="chatbubble-ellipses-outline"
                 title="No messages yet"
@@ -192,24 +321,72 @@ export default function ChatScreen() {
           }
         />
 
-        <View style={styles.composer}>
-          <TextInput
-            style={styles.input}
-            value={draft}
-            onChangeText={setDraft}
-            placeholder={isBlocked ? 'Unblock to send messages' : 'Message'}
-            placeholderTextColor={COLORS.textMuted}
-            editable={!isBlocked}
-            multiline
-          />
-          <Pressable
-            style={[styles.send, (!draft.trim() || isBlocked || sending) && styles.sendDisabled]}
-            onPress={() => void handleSend()}
-            disabled={!draft.trim() || isBlocked || sending}
-            accessibilityLabel="Send message"
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            paddingHorizontal: spacing.md,
+            paddingTop: spacing.sm,
+            paddingBottom: spacing.sm,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            backgroundColor: colors.background,
+            gap: spacing.sm
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              borderRadius: radius.pill,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              paddingHorizontal: spacing.md,
+              minHeight: 48
+            }}
           >
-            <Ionicons name="send" size={20} color={COLORS.textInverse} />
-          </Pressable>
+            <TextInput
+              style={{
+                flex: 1,
+                minHeight: 46,
+                maxHeight: 120,
+                paddingTop: 12,
+                paddingBottom: 12,
+                fontFamily: fonts.regular,
+                fontSize: 15,
+                lineHeight: 21,
+                color: colors.text
+              }}
+              value={draft}
+              onChangeText={setDraft}
+              placeholder={composerNote}
+              placeholderTextColor={colors.textMuted}
+              editable={canSend}
+              multiline
+              selectionColor={colors.primary}
+              accessibilityLabel="Message"
+            />
+          </View>
+          <PressableScale
+            onPress={() => void handleSend()}
+            disabled={!draft.trim() || !canSend || sending}
+            accessibilityLabel="Send message"
+            accessibilityState={{ disabled: !draft.trim() || !canSend || sending }}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: draft.trim() && canSend ? colors.primary : colors.surfaceSunken
+            }}
+          >
+            <Ionicons
+              name="arrow-up"
+              size={22}
+              color={draft.trim() && canSend ? colors.onPrimary : colors.textMuted}
+            />
+          </PressableScale>
         </View>
       </KeyboardAvoidingView>
 
@@ -221,49 +398,3 @@ export default function ChatScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  messages: { padding: 16, paddingBottom: 8, flexGrow: 1 },
-  blockedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FEF2F2',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border
-  },
-  blockedBannerText: { color: COLORS.danger, fontSize: 13, flex: 1 },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-    gap: 10
-  },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderRadius: 22,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    fontSize: 15,
-    color: COLORS.text
-  },
-  send: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  sendDisabled: { backgroundColor: COLORS.textMuted }
-});

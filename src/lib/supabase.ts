@@ -23,7 +23,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: SecureStoreAdapter,
+    ...(Platform.OS === 'web' ? {} : { storage: SecureStoreAdapter }),
     autoRefreshToken: true,
     persistSession: true,
     // No deep-link session detection on native; required for React Native.

@@ -99,10 +99,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     output: 'static'
   },
 
+  updates: {
+    url: 'https://u.expo.dev/e7937b78-3015-4709-8195-c5d50f1f6ff6'
+  },
+  runtimeVersion: {
+    policy: 'appVersion'
+  },
+
   plugins: [
     'expo-router',
     'expo-secure-store',
     'expo-local-authentication',
+    'expo-web-browser',
     [
       'expo-image-picker',
       {
@@ -117,19 +125,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         // Default channel used for chat + reminder notifications (Android 8+).
         icon: './assets/notification-icon.png',
-        color: '#0F766E',
+        color: '#3DDC97',
         defaultChannel: 'default'
       }
     ],
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#0F766E',
+        backgroundColor: '#0B0D12',
         image: './assets/splash-icon.png',
         imageWidth: 220,
         resizeMode: 'contain',
         dark: {
-          backgroundColor: '#0B1220',
+          backgroundColor: '#0B0D12',
           image: './assets/splash-icon.png'
         }
       }
@@ -141,14 +149,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
 
   extra: {
-    // EAS project id is written by `eas init` / `eas build:configure`.
+    // EAS project id for @varshney_g/expense-counter.
     eas: {
-      projectId: process.env.EAS_PROJECT_ID
+      projectId: 'e7937b78-3015-4709-8195-c5d50f1f6ff6'
     },
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     privacyPolicyUrl:
       process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ??
-      'https://tushar.github.io/expense-counter/privacy-policy'
+      'https://tushar.github.io/expense-counter/privacy-policy',
+    accountDeletionUrl:
+      process.env.EXPO_PUBLIC_ACCOUNT_DELETION_URL ??
+      'https://tushar.github.io/expense-counter/account-deletion'
   }
 });

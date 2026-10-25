@@ -9,7 +9,7 @@ import type { Expense, Message } from '@/types';
  */
 
 const DB_NAME = 'expense_counter.db';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -45,6 +45,7 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
 
       CREATE TABLE IF NOT EXISTS local_messages (
         id TEXT PRIMARY KEY NOT NULL,
+        conversation_id TEXT,
         sender_id TEXT NOT NULL,
         receiver_id TEXT NOT NULL,
         body TEXT NOT NULL,
@@ -61,15 +62,22 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       );
     `);
     await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+  } else if (current < 2) {
+    await db.execAsync(`
+      ALTER TABLE local_messages ADD COLUMN conversation_id TEXT;
+      PRAGMA user_version = ${SCHEMA_VERSION};
+    `);
   }
 }
 
 /* ------------------------------- expenses -------------------------------- */
 
-export async function cacheExpenses(expenses: Expense[]): Promise<void> {
+export async function cacheExpenses(userId: string, expenses: Expense[]): Promise<void> {
   const db = await getDatabase();
   await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM local_expenses WHERE user_id = ?', userId);
     for (const e of expenses) {
+      if (e.user_id !== userId) continue;
       await db.runAsync(
         `INSERT OR REPLACE INTO local_expenses
            (id, user_id, amount, category, note, receipt_url, spent_at, created_at, synced)
@@ -87,10 +95,11 @@ export async function cacheExpenses(expenses: Expense[]): Promise<void> {
   });
 }
 
-export async function getLocalExpenses(): Promise<Expense[]> {
+export async function getLocalExpenses(userId: string): Promise<Expense[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<Expense & { synced: number }>(
-    'SELECT * FROM local_expenses ORDER BY spent_at DESC, created_at DESC'
+    'SELECT * FROM local_expenses WHERE user_id = ? ORDER BY spent_at DESC, created_at DESC',
+    userId
   );
   return rows.map(({ synced: _synced, ...rest }) => rest);
 }
@@ -125,9 +134,10 @@ export async function cacheMessages(messages: Message[]): Promise<void> {
     for (const m of messages) {
       await db.runAsync(
         `INSERT OR REPLACE INTO local_messages
-           (id, sender_id, receiver_id, body, read_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+           (id, conversation_id, sender_id, receiver_id, body, read_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         m.id,
+        m.conversation_id,
         m.sender_id,
         m.receiver_id,
         m.body,
@@ -184,6 +194,16 @@ export async function wipeLocalData(): Promise<void> {
     DELETE FROM local_expenses;
     DELETE FROM local_messages;
     DELETE FROM local_settings;
+    VACUUM;
+  `);
+}
+
+/** Remove cached account content on sign-out while preserving device settings. */
+export async function wipeLocalUserData(): Promise<void> {
+  const db = await getDatabase();
+  await db.execAsync(`
+    DELETE FROM local_expenses;
+    DELETE FROM local_messages;
     VACUUM;
   `);
 }

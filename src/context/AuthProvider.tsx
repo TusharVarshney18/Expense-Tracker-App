@@ -14,6 +14,9 @@ import type { Profile } from '@/types';
 import { syncPushToken } from '@/lib/notifications';
 import { authenticateBiometric, getBiometricEnabled } from '@/lib/biometrics';
 import { deleteAccount as deleteAccountService } from '@/services/account';
+import { wipeLocalUserData } from '@/lib/db';
+import { clearAllLocalBudgets, clearLocalBudget } from '@/lib/localBudget';
+import { TERMS_VERSION } from '@/content/legal';
 
 interface AuthContextValue {
   initializing: boolean;
@@ -31,6 +34,8 @@ interface AuthContextValue {
   ) => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
+  termsAccepted: boolean;
+  acceptTerms: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -42,14 +47,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [locked, setLocked] = useState(false);
   const bootstrapped = useRef(false);
+  const currentUserId = session?.user?.id;
 
   const loadProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    if (!error) setProfile((data as Profile) ?? null);
+    const [profileResult, upiResult] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, display_name, avatar_url, created_at, updated_at, terms_accepted_at, terms_version')
+        .eq('id', userId)
+        .maybeSingle(),
+      supabase.rpc('get_my_upi_id')
+    ]);
+    if (!profileResult.error && profileResult.data) {
+      const { data: authData } = await supabase.auth.getUser();
+      setProfile({
+        ...(profileResult.data as Omit<Profile, 'email' | 'upi_id' | 'push_token'>),
+        email: authData.user?.id === userId ? authData.user.email ?? '' : '',
+        upi_id: upiResult.error ? null : upiResult.data,
+        push_token: null
+      });
+    } else if (!profileResult.error) {
+      setProfile(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -70,6 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (active && !ok) setLocked(true);
         }
         void syncPushToken(data.session.user.id);
+      } else {
+        await wipeLocalUserData();
+        await clearAllLocalBudgets();
       }
 
       if (active) {
@@ -90,6 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setProfile(null);
+        void wipeLocalUserData();
+        void clearAllLocalBudgets();
       }
     });
 
@@ -109,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName } }
+        options: { data: { full_name: fullName, terms_version: TERMS_VERSION } }
       });
       if (error) throw error;
     },
@@ -118,16 +142,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    await wipeLocalUserData();
+    if (currentUserId) await clearLocalBudget(currentUserId);
     setProfile(null);
-  }, []);
+  }, [currentUserId]);
+
+  const acceptTerms = useCallback(async () => {
+    if (!currentUserId) throw new Error('Not signed in.');
+    const { error } = await supabase.rpc('accept_current_terms', {
+      p_terms_version: TERMS_VERSION
+    });
+    if (error) throw error;
+    await loadProfile(currentUserId);
+  }, [currentUserId, loadProfile]);
 
   const deleteAccount = useCallback(async () => {
-    const userId = session?.user?.id;
-    if (!userId) throw new Error('Not signed in.');
-    await deleteAccountService(userId);
+    if (!currentUserId) throw new Error('Not signed in.');
+    await deleteAccountService(currentUserId);
     setProfile(null);
     setSession(null);
-  }, [session?.user?.id]);
+  }, [currentUserId]);
 
   const unlock = useCallback(async () => {
     const ok = await authenticateBiometric();
@@ -137,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (session?.user?.id) await loadProfile(session.user.id);
-  }, [session?.user?.id, loadProfile]);
+  }, [session, loadProfile]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -151,7 +185,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signOut,
       deleteAccount,
-      refreshProfile
+      refreshProfile,
+      termsAccepted: profile?.terms_version === TERMS_VERSION,
+      acceptTerms
     }),
     [
       initializing,
@@ -163,7 +199,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signOut,
       deleteAccount,
-      refreshProfile
+      refreshProfile,
+      acceptTerms
     ]
   );
 

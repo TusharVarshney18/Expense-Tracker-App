@@ -55,6 +55,8 @@ WHY PEOPLE USE EXPENSE COUNTER
 • Receipt photos — snap a picture or attach one from your gallery.
 • Clear totals — see your running total at a glance and stay in control of your
   spending.
+• Shared groups — invite roommates or friends, split bills in exact paise, see
+  balances and get suggested settle-up transfers.
 • Works offline — your expenses are cached on the device, so you can keep
   tracking even without a connection.
 • Private by design — your expenses are yours alone. Row Level Security on the
@@ -65,10 +67,12 @@ BUILT-IN PRIVATE CHAT
 Discuss a shared bill right where your budget lives. Expense Counter includes
 one-to-one messaging so you can coordinate without leaving the app.
 
-• Simple one-to-one conversations.
+• People outside your shared groups send a message request; accept or decline
+  before the conversation continues. A pending request is limited to one message.
+• People in a shared group can chat right away.
 • Report any message or user in a couple of taps.
-• Block anyone instantly — when either of you blocks, messages between you are
-  hidden in both directions.
+• Block anyone instantly — blocking declines a pending request and hides
+  messages in both directions.
 • Your reports are confidential and reviewed by the developer.
 
 SECURE AND IN CONTROL
@@ -80,8 +84,8 @@ SECURE AND IN CONTROL
 DELETE YOUR DATA, ANY TIME
 
 You are in charge of your data. From Settings you can delete your account, which
-permanently removes your profile, all of your expenses, your messages and your
-push token, and wipes the app's local database on your device.
+permanently removes your profile, personal expenses, group entries involving
+your account, messages and push token, and wipes the app's local database.
 
 WHAT EXPENSE COUNTER IS NOT
 
@@ -131,15 +135,18 @@ match the app's actual behaviour as implemented in `supabase/schema.sql`,
 
 ### 5.2 Data types collected
 
-For every row: **Shared = No.** Data is processed only by our service providers
-(Supabase, Expo, Google FCM) on our behalf and is never sold or used for
-advertising.
+Data is processed by our service providers (Supabase, Expo, Google FCM) on our
+behalf and is never sold or used for advertising. Shared group entries and
+optional UPI IDs are visible to the group members the user chooses to join.
+Confirm the Play Console's user-to-user sharing classification before submission.
+See Google's [guidance on sharing personal information](https://support.google.com/googleplay/android-developer/answer/6161127?hl=en)
+when completing that answer.
 
 | Data type (Play category) | Collected | Optional for the user | Purposes | Linked to identity |
 | --- | --- | --- | --- | --- |
 | Personal info → **Name** | Yes | No (required at sign-up) | App functionality, Account management | Yes |
 | Personal info → **Email address** | Yes | No (required at sign-up) | App functionality, Account management | Yes |
-| Financial info → **Other financial info** (expense amounts & categories) | Yes | Yes (users may use the app without recording expenses) | App functionality | Yes |
+| Financial info → **Other financial info** (personal and group expense amounts, split shares, settlements and optional UPI ID) | Yes | Yes (users may skip groups and leave UPI ID blank) | App functionality | Yes |
 | Messages → **Other in-app messages** (chat content) | Yes | Yes (only if the user chats) | App functionality | Yes |
 | Photos and videos → **Photos** (receipt images) | Yes | Yes (only if the user attaches a receipt) | App functionality | Yes |
 | Device or other IDs → **Device or other IDs** (push token) | Yes | Yes (only if notifications are allowed) | App functionality | Yes |
@@ -162,8 +169,8 @@ Crash logs · Diagnostics · Performance data · Advertising / device advertisin
 | Is the data collected for advertising or marketing? | No |
 | Is the data used to personalise content? | No |
 | Is the data transferred to third parties? | No (only service providers acting on our behalf) |
-| Is data deleted when the user deletes their account? | Yes — profile, expenses, messages, push token and local cache are erased |
-| Deletion request mechanism | In-app: Settings → Delete account. External: tushar.expensecounter@gmail.com |
+| Is data deleted when the user deletes their account? | Yes — profile, personal expenses, group entries involving the user, messages, push token and local cache are erased |
+| Deletion request mechanism | In-app: Settings → Delete account. External: tusharvarshney1810@gmail.com |
 | Data retention period | Until the user deletes the item or their account |
 
 ### 5.5 Security practices to declare
@@ -171,7 +178,7 @@ Crash logs · Diagnostics · Performance data · Advertising / device advertisin
 | Question | Answer |
 | --- | --- |
 | Data encrypted in transit | **Yes** (TLS to Supabase, Expo and FCM) |
-| Data encrypted at rest | Yes (managed by the hosting provider) |
+| Data encrypted at rest | **No** — server-side data is encrypted at rest by the hosting provider; the on-device SQLite cache does not use SQLCipher. Verify the exact answer against Play Console's current definition before submission. |
 | Sign-in / account authentication supported | Yes (email + password via Supabase Auth) |
 | Users can request deletion without leaving the app | Yes |
 | Committed to follow the Play Families policy | Not applicable (app is not directed at children) |
@@ -204,5 +211,5 @@ Because a login is required, Play reviewers need test credentials.
 | Content rating questionnaire | No violence, no sexual content, no language, no controlled substances; user-to-user communication **Yes**; users can share location **No**; personal info sharing **Yes** |
 | News app | No |
 | COVID-19 contact tracing | No |
-| Data deletion URL | https://tushar.github.io/expense-counter/privacy-policy (policy includes deletion steps) |
+| Data deletion URL | https://tushar.github.io/expense-counter/account-deletion |
 | Privacy policy URL | https://tushar.github.io/expense-counter/privacy-policy |

@@ -10,10 +10,14 @@ export interface Profile {
   id: string;
   email: string;
   full_name: string | null;
+  display_name: string | null;
+  upi_id: string | null;
   avatar_url: string | null;
   push_token: string | null;
   created_at: string;
   updated_at: string;
+  terms_accepted_at: string | null;
+  terms_version: string | null;
 }
 
 export interface Expense {
@@ -29,6 +33,7 @@ export interface Expense {
 
 export interface Message {
   id: string;
+  conversation_id: string;
   sender_id: string;
   receiver_id: string;
   body: string;
@@ -41,6 +46,7 @@ export interface Report {
   reporter_id: string;
   reported_user_id: string;
   message_id: string | null;
+  conversation_id: string | null;
   reason: ReportReason;
   details: string | null;
   status: ReportStatus;
@@ -55,6 +61,9 @@ export interface Block {
 }
 
 export interface Conversation {
-  partner: Pick<Profile, 'id' | 'full_name' | 'email' | 'avatar_url'>;
+  id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  requested_by: string | null;
+  partner: Pick<Profile, 'id' | 'full_name' | 'avatar_url'>;
   lastMessage: Message | null;
 }

@@ -4,7 +4,12 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { cacheMessages, getLocalMessages } from '@/lib/db';
 import { useAuth } from '@/context/AuthProvider';
-import type { Message } from '@/types';
+import type { Conversation, Message } from '@/types';
+
+interface ConversationLookup extends Pick<Conversation, 'id' | 'status' | 'requested_by'> {
+  user_low_id: string;
+  user_high_id: string;
+}
 
 /**
  * Loads and live-subscribes to the 1:1 conversation between the signed-in user
@@ -17,42 +22,71 @@ export function useMessages(partnerId: string | null) {
   const selfId = user?.id ?? null;
 
   const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesForKey, setMessagesForKey] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<ConversationLookup | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [blockedIds, setBlockedIds] = useState<string[]>([]);
+  const [blockedForUserId, setBlockedForUserId] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const requestKey = selfId && partnerId ? `${selfId}:${partnerId}` : null;
 
   const loadBlocked = useCallback(async () => {
+    if (!selfId) {
+      setBlockedIds([]);
+      setBlockedForUserId(null);
+      return;
+    }
     const { data } = await supabase.from('blocks').select('blocked_id');
     setBlockedIds((data ?? []).map((r) => r.blocked_id as string));
-  }, []);
+    setBlockedForUserId(selfId);
+  }, [selfId]);
 
   const load = useCallback(async () => {
     if (!selfId || !partnerId) {
       setMessages([]);
+      setMessagesForKey(null);
+      setConversation(null);
       setLoading(false);
       return;
     }
+    setMessages([]);
+    setMessagesForKey(requestKey);
     setLoading(true);
+    setError(null);
     try {
+      const { data: conversationData, error: conversationError } = await supabase
+        .from('conversations')
+        .select('id,user_low_id,user_high_id,status,requested_by')
+        .or(`and(user_low_id.eq.${selfId},user_high_id.eq.${partnerId}),and(user_low_id.eq.${partnerId},user_high_id.eq.${selfId})`)
+        .maybeSingle();
+      if (conversationError) throw conversationError;
+      if (!conversationData) {
+        setConversation(null);
+        setMessages([]);
+        return;
+      }
+      const found = conversationData as ConversationLookup;
+      setConversation(found);
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .or(
-          `and(sender_id.eq.${selfId},receiver_id.eq.${partnerId}),` +
-            `and(sender_id.eq.${partnerId},receiver_id.eq.${selfId})`
-        )
+        .eq('conversation_id', found.id)
         .order('created_at', { ascending: true });
       if (error) throw error;
       setMessages((data as Message[]) ?? []);
       await cacheMessages((data as Message[]) ?? []);
-    } catch {
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not load messages.');
       setMessages(await getLocalMessages(partnerId, selfId));
     } finally {
       setLoading(false);
     }
-  }, [selfId, partnerId]);
+  }, [selfId, partnerId, requestKey]);
 
   useEffect(() => {
+    // These effects start async data loads; the state updates belong to those requests.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     void loadBlocked();
   }, [load, loadBlocked]);
@@ -108,23 +142,19 @@ export function useMessages(partnerId: string | null) {
       const text = body.trim();
       if (!selfId || !partnerId) throw new Error('No conversation selected.');
       if (!text) return;
-      if (blockedIds.includes(partnerId)) {
+      if (blockedForUserId === selfId && blockedIds.includes(partnerId)) {
         throw new Error('You have blocked this user. Unblock them to send messages.');
       }
 
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({ sender_id: selfId, receiver_id: partnerId, body: text })
-        .select()
-        .single();
+      if (!conversation) throw new Error('Conversation not found. Start a request first.');
+      const { error } = await supabase.rpc('send_conversation_message', {
+        p_conversation_id: conversation.id,
+        p_body: text
+      });
       if (error) throw error;
-
-      const created = data as Message;
-      setMessages((prev) =>
-        prev.some((m) => m.id === created.id) ? prev : [...prev, created]
-      );
+      await load();
     },
-    [selfId, partnerId, blockedIds]
+    [selfId, partnerId, blockedIds, blockedForUserId, conversation, load]
   );
 
   const markRead = useCallback(
@@ -138,10 +168,16 @@ export function useMessages(partnerId: string | null) {
     []
   );
 
-  const isPartnerBlocked = partnerId ? blockedIds.includes(partnerId) : false;
+  const isPartnerBlocked = partnerId && blockedForUserId === selfId
+    ? blockedIds.includes(partnerId)
+    : false;
+  const visibleMessages = messagesForKey === requestKey ? messages : [];
+  const visibleConversation = messagesForKey === requestKey ? conversation : null;
 
   return {
-    messages,
+    messages: visibleMessages,
+    conversation: visibleConversation,
+    error,
     loading,
     isPartnerBlocked,
     sendMessage,

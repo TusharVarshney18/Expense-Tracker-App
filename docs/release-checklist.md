@@ -48,12 +48,28 @@ EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 EXPO_PUBLIC_PRIVACY_POLICY_URL=https://tushar.github.io/expense-counter/privacy-policy
 EXPO_PUBLIC_TERMS_URL=https://tushar.github.io/expense-counter/terms
+EXPO_PUBLIC_ACCOUNT_DELETION_URL=https://tushar.github.io/expense-counter/account-deletion
 ```
 
 - [ ] Create the Supabase project and run, in the SQL editor, **in order**:
   1. `supabase/schema.sql`
   2. `supabase/policies.sql`
+- [ ] For an existing database, check its migration history and apply each
+      missing migration in timestamp order. Do not re-run migrations already
+      applied:
+  1. `20261019000000_groups.sql`
+  2. `20261020000000_group_split_modes.sql`
+  3. `20261020100000_group_profile_columns.sql`
+  4. `20261020200000_chat_requests.sql`
+  5. `20261020300000_group_expense_edits.sql`
+  6. `20261020400000_play_security_baseline.sql`
 - [ ] Verify the `receipts` storage bucket exists and is **private**.
+- [ ] Publish `docs/account-deletion.md` on the public GitHub Pages site and
+      verify its URL while signed out:
+      `https://tushar.github.io/expense-counter/account-deletion`.
+- [ ] Assign an owner to review abuse reports in Supabase; see
+      `docs/moderation-runbook.md`. There is no in-app moderation queue or
+      automatic review.
 - [ ] Confirm Realtime is enabled for `public.messages`
       (Database → Replication → `supabase_realtime`).
 - [ ] Add build-time secrets to EAS if you prefer not to commit them:
@@ -158,6 +174,13 @@ are ready to advance (see section 6).
 - [ ] Smoke-test the preview APK on a physical device:
   - [ ] Sign up / sign in works.
   - [ ] Add an expense; attach a receipt from camera and gallery.
+  - [ ] Create a group, join it from a second account using the invite code, and
+        confirm non-members cannot read the group's ledger.
+  - [ ] Add a shared expense with an uneven paise remainder; confirm all shares
+        total exactly to the expense amount and balances remain in whole paise.
+  - [ ] Record a suggested settle-up payment and confirm the balances update.
+  - [ ] Set a UPI ID and confirm it is visible only to the account owner and
+        members of that group.
   - [ ] Offline: expenses still load from the local SQLite cache.
   - [ ] Send a chat message between two accounts; it arrives live.
   - [ ] Report a message; row appears in `public.reports`.
@@ -166,8 +189,9 @@ are ready to advance (see section 6).
   - [ ] Toggle the biometric app lock; background + reopen prompts unlock.
   - [ ] Grant and deny notification permission; push token appears/does not
         appear on the profile.
-  - [ ] **Settings → Delete account**: profile, expenses, messages and push
-        token are gone in Supabase, local data is wiped, and you are signed out.
+  - [ ] **Settings → Delete account**: profile, personal expenses, group entries
+        involving the account, messages and push token are handled in Supabase,
+        local data is wiped, and you are signed out.
   - [ ] Privacy Policy and Terms links open in Settings.
 - [ ] Check that ONLY these Android permissions are requested:
       `POST_NOTIFICATIONS`, `USE_BIOMETRIC`, `CAMERA`.
@@ -269,6 +293,11 @@ Google Play tracks, from least to most visible:
         https://tushar.github.io/expense-counter/privacy-policy
 - [ ] File the **Data safety** form using the answer sheet in
       `docs/play-store-listing.md` §5.
+- [ ] Complete the **Financial features** declaration accurately for expense
+      tracking and shared balances.
+- [ ] Confirm the final Android App Bundle targets API level 36 or newer.
+      Expo [SDK 58's Android support table](https://docs.expo.dev/versions/v58.0.0/)
+      lists target SDK 36; still verify the produced bundle in Play Console.
 - [ ] Complete **Content rating**, **Target audience**, **App access**
       (reviewer demo credentials), **Ads** and **News** declarations.
 - [ ] Roll out to production (start with a **staged rollout** such as 20%).

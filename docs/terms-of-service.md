@@ -1,12 +1,13 @@
 # Terms of Service for Expense Counter
 
-**Last updated: October 17, 2026**
+**Last updated: October 21, 2026**
 
 These Terms of Service ("Terms") govern your use of the Expense Counter mobile
-application ("the app"), published by Tushar ("we", "us"). By creating an account
-or using the app you agree to these Terms.
+application ("the app"), published by Tushar ("we", "us"). You must review and
+accept these Terms before creating an account or sending messages. If the Terms
+are updated, you may need to accept the current version before using chat again.
 
-**Contact:** tushar.expensecounter@gmail.com
+**Contact:** tusharvarshney1810@gmail.com
 **Published at:** https://tushar.github.io/expense-counter/terms
 
 ---
@@ -36,10 +37,14 @@ You agree not to:
 ## 4. Chat, reports and blocking
 
 - The app provides 1:1 chat between users.
+- If you do not share a group with someone, your first message is sent as a
+  request. The recipient can accept or decline it. Only one message can be sent
+  while a request is pending.
 - You may **report** any message or user. Reports are confidential and reviewed by
   us. Repeated abuse may result in account removal.
 - You may **block** any user. When either party has blocked the other, messages
   in both directions are hidden and new messages cannot be sent between you.
+- Blocking someone who sent you a pending request declines that request.
 - You are solely responsible for the messages you send.
 
 ## 5. Expenses and no financial advice
@@ -48,11 +53,19 @@ The app is a personal record-keeping tool. It does not provide financial, tax,
 accounting, or investment advice. You are responsible for the accuracy of the
 data you enter.
 
+Shared group balances and settle-up suggestions are calculations based on member
+entries. They are not payment instructions or guarantees. The app does not move
+money; a settlement entry records a payment that members say they made outside
+the app. Share group invite codes only with people you want to join, since group
+members can view the group's shared expenses, splits, settlements, display names
+and optional UPI IDs.
+
 ## 6. Your content
 
-You retain ownership of the content you create (expenses, notes, receipt photos
-and messages). You grant us a limited licence to store, transmit and display that
-content solely to operate the app for you.
+You retain ownership of the content you create (expenses, notes, receipt photos,
+messages and shared group entries). You grant us a limited licence to store,
+transmit and display that content solely to operate the app for you and the group
+members you choose to share it with.
 
 ## 7. Our content
 
@@ -91,4 +104,4 @@ the app. Continued use after changes take effect constitutes acceptance.
 
 ## 13. Contact
 
-Questions about these Terms: **tushar.expensecounter@gmail.com**
+Questions about these Terms: **tusharvarshney1810@gmail.com**

@@ -1,52 +1,91 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 
-import { Screen } from '@/components/Screen';
-import { TextField } from '@/components/TextField';
-import { Button } from '@/components/Button';
+import { AuthError, AuthDivider, AuthScaffold, Reveal } from '@/components/auth/AuthScaffold';
+import { AuthSplitCard } from '@/components/auth/AuthSplitCard';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
+import { PressableScale } from '@/components/ui/PressableScale';
+import { Text } from '@/components/ui/Text';
 import { useAuth } from '@/context/AuthProvider';
-import { COLORS } from '@/lib/constants';
+import { hapticError, hapticSuccess } from '@/lib/haptics';
+import { signInWithGoogle } from '@/lib/oauth';
+import { useTheme } from '@/theme';
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
   const router = useRouter();
+  const { colors, spacing, shadows } = useTheme();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSignIn = async () => {
     setError(null);
     if (!email.trim() || !password) {
       setError('Enter your email and password.');
+      hapticError();
       return;
     }
     setLoading(true);
     try {
       await signIn(email.trim(), password);
+      hapticSuccess();
       router.replace('/(tabs)');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not sign in.');
+      hapticError();
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <Screen>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.flex}
-      >
-        <View style={styles.header}>
-          <Text style={styles.brand}>Expense Counter</Text>
-          <Text style={styles.tagline}>Track spending. Chat about it. Privately.</Text>
-        </View>
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      if (result === 'success') {
+        hapticSuccess();
+        router.replace('/(tabs)');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not continue with Google.');
+      hapticError();
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
-        <View style={styles.form}>
-          <TextField
+  return (
+    <AuthScaffold>
+      <Reveal delay={80}>
+        <AuthSplitCard />
+      </Reveal>
+
+      <Reveal delay={190} style={{ marginTop: spacing.xxxl }}>
+        <Text variant="display" color={colors.text} accessibilityRole="header">
+          Welcome back.
+        </Text>
+        <Text
+          variant="body"
+          color={colors.textMuted}
+          style={{ marginTop: spacing.sm, maxWidth: 320 }}
+        >
+          Your expenses, shared balances and conversations in one private place.
+        </Text>
+      </Reveal>
+
+      <View style={{ marginTop: spacing.xl }}>
+        {error ? <AuthError message={error} /> : null}
+
+        <Reveal delay={260}>
+          <Input
             label="Email"
             value={email}
             onChangeText={setEmail}
@@ -54,40 +93,97 @@ export default function SignInScreen() {
             keyboardType="email-address"
             autoComplete="email"
             placeholder="you@example.com"
+            icon="mail-outline"
+            returnKeyType="next"
           />
-          <TextField
+        </Reveal>
+
+        <Reveal delay={320}>
+          <PasswordInput
             label="Password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
             autoComplete="password"
             placeholder="Your password"
+            icon="lock-closed-outline"
+            returnKeyType="go"
+            onSubmitEditing={() => void handleSignIn()}
           />
+        </Reveal>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <Button label="Sign in" onPress={handleSignIn} loading={loading} />
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>New here? </Text>
-            <Link href="/(auth)/sign-up" style={styles.link}>
-              Create an account
+        <Reveal delay={370}>
+          <View style={{ alignItems: 'flex-end', marginTop: -spacing.sm }}>
+            <Link href="/(auth)/forgot-password" asChild>
+              <PressableScale
+                accessibilityLabel="Forgot password"
+                style={{ minHeight: 44, justifyContent: 'center', paddingLeft: spacing.md }}
+              >
+                <Text variant="bodyStrong" color={colors.primary} style={{ fontSize: 13, lineHeight: 18 }}>
+                  Forgot password?
+                </Text>
+              </PressableScale>
             </Link>
           </View>
-        </View>
-      </KeyboardAvoidingView>
-    </Screen>
+        </Reveal>
+
+        <Reveal delay={420}>
+          <Button
+            label="Sign in"
+            onPress={() => void handleSignIn()}
+            loading={loading}
+            disabled={googleLoading}
+            icon="arrow-forward"
+            iconPosition="right"
+            size="lg"
+            gradient={false}
+            style={[shadows.glow, { marginTop: spacing.xs }]}
+          />
+        </Reveal>
+
+        <Reveal delay={470}>
+          <AuthDivider />
+        </Reveal>
+
+        <Reveal delay={520}>
+          <Button
+            label="Continue with Google"
+            variant="outline"
+            icon="logo-google"
+            onPress={() => void handleGoogleSignIn()}
+            loading={googleLoading}
+            disabled={loading}
+            size="lg"
+            style={{ marginTop: spacing.lg }}
+          />
+        </Reveal>
+
+        <Reveal delay={570}>
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: spacing.lg,
+              minHeight: 44
+            }}
+          >
+            <Text variant="body" color={colors.textMuted}>
+              New here?{' '}
+            </Text>
+            <Link href="/(auth)/sign-up" asChild>
+              <PressableScale
+                accessibilityLabel="Create an account"
+                style={{ minHeight: 44, justifyContent: 'center' }}
+              >
+                <Text variant="bodyStrong" color={colors.primary}>
+                  Create an account
+                </Text>
+              </PressableScale>
+            </Link>
+          </View>
+        </Reveal>
+      </View>
+    </AuthScaffold>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, justifyContent: 'center' },
-  header: { marginBottom: 32 },
-  brand: { fontSize: 30, fontWeight: '800', color: COLORS.primaryDark },
-  tagline: { fontSize: 15, color: COLORS.textMuted, marginTop: 6 },
-  form: {},
-  error: { color: COLORS.danger, marginBottom: 12, fontSize: 14 },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
-  footerText: { color: COLORS.textMuted, fontSize: 14 },
-  link: { color: COLORS.primary, fontSize: 14, fontWeight: '600' }
-});
