@@ -19,28 +19,36 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 function useProtectedRoute() {
-  const { session, initializing, termsAccepted } = useAuth();
+  const { session, initializing, profileLoading, authCallbackLoading, termsAccepted } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (initializing) return;
-    const inAuthGroup = segments[0] === '(auth)';
+    // Wait until the session and its profile (including Terms) are known.
+    if (initializing || authCallbackLoading || (session && profileLoading)) return;
 
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/sign-in');
-    } else if (session && !termsAccepted && segments[0] !== 'legal') {
-      router.replace('/legal/accept-terms');
-    } else if (session && termsAccepted && (inAuthGroup || (segments[0] === 'legal' && segments[1] === 'accept-terms'))) {
+    const inAuthGroup = segments[0] === '(auth)';
+    const inLegalGroup = segments[0] === 'legal';
+    const onAcceptTerms = segments[0] === 'legal' && segments[1] === 'accept-terms';
+
+    if (!session) {
+      if (!inAuthGroup) router.replace('/(auth)/sign-in');
+    } else if (!termsAccepted) {
+      // The Accept Terms screen stays in front of every protected route. The
+      // Terms and Privacy documents remain reachable from that screen.
+      if (!inLegalGroup) router.replace('/legal/accept-terms');
+    } else if (inAuthGroup || onAcceptTerms) {
       router.replace('/(tabs)');
     }
-  }, [session, initializing, termsAccepted, segments, router]);
+  }, [session, initializing, profileLoading, authCallbackLoading, termsAccepted, segments, router]);
 }
 
 function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
-  const { initializing, locked } = useAuth();
+  const { initializing, profileLoading, authCallbackLoading, locked, session } = useAuth();
   const { colors, fonts, typography } = useTheme();
   useProtectedRoute();
+
+  const loading = initializing || authCallbackLoading || (Boolean(session) && profileLoading);
 
   useEffect(() => {
     if (!initializing && fontsReady) {
@@ -50,7 +58,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
     }
   }, [fontsReady, initializing]);
 
-  if (initializing || !fontsReady) {
+  if (loading || !fontsReady) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, gap: 16 }}>
         <BrandMark size={64} />
@@ -84,6 +92,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
     >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
       <Stack.Screen name="group/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="chat/[id]" options={{ headerShown: true, title: 'Chat' }} />
       <Stack.Screen

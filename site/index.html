@@ -11,9 +11,22 @@
   <title>Expense Counter — Split money. Keep friendships.</title>
   <link rel="stylesheet" href="/styles.css">
   <script>
-    // Set this once to the direct APK URL when the Android download is ready.
-    const APK_URL = '';
+    // Public, installable releases served by this site.
+    // Replace the iOS URL with the App Store link (or a TestFlight public link)
+    // once the build is live. Leaving it empty keeps the button pointing at the
+    // download section and marks it as unavailable.
+    const APP_STORE_URL = '';
+    const APK_URL = 'https://izmxt0robe51gg1b.public.blob.vercel-storage.com/expense-counter-1.0.0.apk';
     document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[data-ios]').forEach((link) => {
+        link.href = APP_STORE_URL || '#download';
+        if (!APP_STORE_URL) {
+          link.setAttribute('aria-disabled', 'true');
+          link.setAttribute('title', 'iOS release coming soon');
+        } else {
+          link.removeAttribute('download');
+        }
+      });
       document.querySelectorAll('[data-download]').forEach((download) => {
         download.href = APK_URL || '#download';
         if (!APK_URL) download.setAttribute('aria-disabled', 'true');
@@ -34,13 +47,18 @@
         <h1 id="hero-title">Expense<br><span>Counter.</span></h1>
         <p class="hero-copy">Split money. Keep friendships. Stay on top of everyday spending, settle up with your people, and keep the conversation in one place.</p>
         <div class="actions">
-          <a class="button" data-download href="#download">
+          <a class="button button-ios" data-ios href="#download" aria-label="Download Expense Counter for iOS">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.36 12.7c.02-2.02 1.65-2.99 1.72-3.04-0.94-1.37-2.4-1.56-2.92-1.58-1.24-.13-2.43.73-3.06.73-.63 0-1.6-.71-2.63-.69-1.35.02-2.6.79-3.3 2-1.41 2.44-.36 6.05 1.01 8.03.67.97 1.47 2.05 2.52 2.01 1.01-.04 1.39-.65 2.61-.65 1.22 0 1.56.65 2.63.63 1.09-.02 1.78-.99 2.45-1.96.77-1.12 1.09-2.21 1.11-2.27-.02-.01-2.12-.82-2.14-3.21zM14.4 6.45c.56-.68.94-1.62.84-2.56-.81.03-1.79.54-2.37 1.21-.52.6-.98 1.56-.86 2.48.9.07 1.83-.46 2.39-1.13z"/></svg>
+            Download for iOS
+          </a>
+          <a class="button" data-download href="#download" download="expense-counter.apk">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M4.5 16.5v2A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Download for Android
           </a>
           <a class="soft-link" href="#features">Explore the features <span aria-hidden="true">↘</span></a>
         </div>
-        <p class="platform-note">iPhone version coming later</p>
+        <p class="platform-note">Available for iPhone and Android.</p>
+        <p class="platform-note">After the Android APK downloads, open it to install. Android may ask you to allow installs from your browser.</p>
       </div>
 
       <div class="hero-art" aria-label="Expense Counter app preview">
@@ -73,7 +91,10 @@
 
     <section class="closing shell" id="download" aria-label="Get Expense Counter">
       <div><h2>Ready to make money stuff easier?</h2><p>Start with a cleaner view of spending and shared costs.</p></div>
-      <a class="button" data-download href="#download">Download for Android <span aria-hidden="true">↗</span></a>
+      <div class="actions">
+        <a class="button button-ios" data-ios href="#download" aria-label="Download Expense Counter for iOS">Download for iOS <span aria-hidden="true">↗</span></a>
+        <a class="button" data-download href="#download" download="expense-counter.apk">Download for Android <span aria-hidden="true">↗</span></a>
+      </div>
     </section>
   </main>
 

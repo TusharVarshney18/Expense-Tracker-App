@@ -76,6 +76,7 @@ create table if not exists public.messages (
   receiver_id  uuid not null references public.profiles (id) on delete cascade,
   body         text not null check (char_length(body) between 1 and 2000),
   read_at      timestamptz,
+  push_notified_at timestamptz,
   created_at   timestamptz not null default now(),
   constraint messages_not_self check (sender_id <> receiver_id)
 );
@@ -532,6 +533,7 @@ do $$ begin
   end if;
 end $$;
 alter table public.messages add column if not exists conversation_id uuid references public.conversations(id) on delete cascade;
+alter table public.messages add column if not exists push_notified_at timestamptz;
 insert into public.conversations(user_low_id,user_high_id,status)
 select least(sender_id,receiver_id),greatest(sender_id,receiver_id),'accepted' from public.messages
 group by least(sender_id,receiver_id),greatest(sender_id,receiver_id)

@@ -4,6 +4,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { cacheMessages, getLocalMessages } from '@/lib/db';
 import { useAuth } from '@/context/AuthProvider';
+import { notifyMessagePush } from '@/services/chat';
 import type { Conversation, Message } from '@/types';
 
 interface ConversationLookup extends Pick<Conversation, 'id' | 'status' | 'requested_by'> {
@@ -75,10 +76,20 @@ export function useMessages(partnerId: string | null) {
         .order('created_at', { ascending: true });
       if (error) throw error;
       setMessages((data as Message[]) ?? []);
-      await cacheMessages((data as Message[]) ?? []);
+      try {
+        await cacheMessages((data as Message[]) ?? []);
+      } catch (cacheError) {
+        // Keep the messages fetched from the cloud even if the local write fails.
+        console.warn('Could not update the offline message cache.', cacheError);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not load messages.');
-      setMessages(await getLocalMessages(partnerId, selfId));
+      try {
+        setMessages(await getLocalMessages(partnerId, selfId));
+      } catch (cacheError) {
+        console.warn('Could not read the offline message cache.', cacheError);
+        setMessages([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -147,11 +158,19 @@ export function useMessages(partnerId: string | null) {
       }
 
       if (!conversation) throw new Error('Conversation not found. Start a request first.');
-      const { error } = await supabase.rpc('send_conversation_message', {
+      const { data: messageId, error } = await supabase.rpc('send_conversation_message', {
         p_conversation_id: conversation.id,
         p_body: text
       });
       if (error) throw error;
+
+      // Push the recipient even when they are not looking at the app. Failure
+      // to notify must never make a successfully sent message look unsent.
+      if (typeof messageId === 'string') {
+        void notifyMessagePush({ messageId }).catch((pushError) => {
+          console.warn('[chat] message notification failed', pushError);
+        });
+      }
       await load();
     },
     [selfId, partnerId, blockedIds, blockedForUserId, conversation, load]

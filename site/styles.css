@@ -42,6 +42,9 @@ h1, h2, h3, p { margin-top: 0; }
 .button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid rgba(61,220,151,.5); outline-offset: 3px; }
 .button[aria-disabled="true"] { cursor: pointer; }
 .button svg { width: 18px; height: 18px; }
+.button-ios { background: #fff; color: #07140f; }
+.button-ios:hover { background: #e8f0eb; }
+.button[aria-disabled="true"] { opacity: .72; }
 .soft-link { color: var(--muted); font-size: 13px; text-decoration: none; }
 .soft-link:hover { color: var(--mint); }
 .platform-note { margin: 13px 0 0; color: var(--subtle); font-size: 12px; }

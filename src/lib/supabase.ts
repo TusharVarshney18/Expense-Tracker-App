@@ -21,7 +21,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Preserve the non-null narrowing inside the helper functions below.
+const resolvedSupabaseUrl: string = supabaseUrl;
+const resolvedSupabaseAnonKey: string = supabaseAnonKey;
+
+export const supabase = createClient(resolvedSupabaseUrl, resolvedSupabaseAnonKey, {
   auth: {
     ...(Platform.OS === 'web' ? {} : { storage: SecureStoreAdapter }),
     autoRefreshToken: true,
@@ -39,7 +43,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  * website receive the one-time recovery session in its URL fragment.
  */
 export function sendPasswordResetEmail(email: string, redirectTo: string) {
-  const recoveryClient = createClient(supabaseUrl, supabaseAnonKey, {
+  const recoveryClient = createClient(resolvedSupabaseUrl, resolvedSupabaseAnonKey, {
     auth: {
       flowType: 'implicit',
       persistSession: false,

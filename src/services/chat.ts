@@ -18,11 +18,21 @@ export async function startConversation(otherUserId: string, firstMessage: strin
   return { conversationId: result.conversation_id, created: result.created };
 }
 
-export async function notifyMessageRequest(conversationId: string): Promise<void> {
+export interface MessagePushTarget {
+  messageId?: string;
+  conversationId?: string;
+}
+
+export async function notifyMessagePush(target: MessagePushTarget): Promise<void> {
   const { error } = await supabase.functions.invoke('send-message-request-push', {
-    body: { conversationId }
+    body: target
   });
   if (error) throw error;
+}
+
+/** Notify the recipient about the first message in a new conversation. */
+export async function notifyMessageRequest(conversationId: string): Promise<void> {
+  await notifyMessagePush({ conversationId });
 }
 
 export async function respondToConversation(conversationId: string, accept: boolean): Promise<void> {

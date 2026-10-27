@@ -42,10 +42,13 @@ do not agree, please do not use the app.
 | Terms acceptance date and version | date and version number | Record acceptance of the current Terms of Service. |
 
 Authentication is provided by Supabase. You can register with an email and
-password or use Google sign-in. Passwords are hashed by Supabase Auth and are
-never readable by the developer. If you choose Google sign-in, Google shares the
-account information needed to authenticate you, such as your email address,
-profile name, and profile photo.
+password, use Google sign-in, or use Sign in with Apple on iOS. Passwords are
+hashed by Supabase Auth and are never readable by the developer. If you choose
+Google sign-in, Google shares the account information needed to authenticate
+you, such as your email address, profile name, and profile photo. If you choose
+Sign in with Apple, Apple shares the information needed to authenticate you,
+such as your email address and (only on the first authorization) your name.
+Apple may provide a private relay email address.
 
 If you search for another user by their exact email address in chat, the app
 checks whether an account matches and shows that person's profile name. The
@@ -70,8 +73,8 @@ address itself is not returned in search results or displayed to other users.
 Message content is visible only to you and the person you are chatting with.
 People who do not share a group can send one message as a request. The
 recipient can accept or decline it. We store the request status and send a push
-notification to the recipient when a new request is created, if notifications
-are enabled on their device.
+notification to the recipient for new requests and new messages, if
+notifications are enabled on their device.
 
 ### 2.4 Block data
 | Data | Example | Why |
@@ -81,7 +84,7 @@ are enabled on their device.
 ### 2.5 Push token
 | Data | Example | Why |
 | --- | --- | --- |
-| Expo push token | ExponentPushToken[xxxx] | Deliver push notifications for new chat requests. |
+| Expo push token | ExponentPushToken[xxxx] | Deliver push notifications for new chat requests and messages. |
 
 ### 2.6 Report data
 | Data | Example | Why |
@@ -123,7 +126,7 @@ We use your data only to provide the app:
 1. **Authentication** — to create and secure your account.
 2. **Expense tracking** — to display, total and store the expenses you add.
 3. **Chat** — to deliver messages between you and recipients.
-4. **Notifications** — to alert you to new chat requests when notifications are enabled.
+4. **Notifications** — to alert you to new chat requests and messages when notifications are enabled.
 5. **Trust & safety** — to review reports of abuse and enforce our Terms.
 
 Shared group data is used to calculate each member's balance and to show settle-up
@@ -184,6 +187,7 @@ that operate the app on our behalf, and only as far as needed:
 | Supabase | Database, authentication, file storage | All app data |
 | Expo | Push notification delivery | Push token, notification content |
 | Google | Optional Google sign-in and Android OS-level push delivery (FCM) | Account information returned for sign-in; push token |
+| Apple | Optional Sign in with Apple on iOS and iOS push delivery (APNs via Expo) | Account information returned for sign-in; push token |
 | Other members of your group | Shared ledger and settle-up | Group expenses, splits, settlements, display name and optional UPI ID |
 
 These providers are bound by their own privacy policies and act as processors.

@@ -5,6 +5,7 @@ node_modules/
 
 # Expo
 .expo/
+.vercel/
 dist/
 web-build/
 expo-env.d.ts
@@ -28,6 +29,9 @@ google-services.json
 google-services.json.bak
 *.keystore
 
+# Firebase client configuration contains public app identifiers and is needed by EAS builds.
+!google-services.json
+
 # Supabase local
 supabase/.branches
 supabase/.temp
@@ -48,3 +52,6 @@ yarn-error.*
 .idea/
 .vscode/
 *.swp
+
+.vercel
+.env*.local

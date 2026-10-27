@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { AppleSignInButton } from '@/components/auth/AppleSignInButton';
 import { AuthError, AuthDivider, AuthScaffold, Reveal } from '@/components/auth/AuthScaffold';
 import { AuthSplitCard } from '@/components/auth/AuthSplitCard';
 import { Button } from '@/components/ui/Button';
@@ -11,13 +12,13 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Text } from '@/components/ui/Text';
 import { useAuth } from '@/context/AuthProvider';
+import { signInWithApple } from '@/lib/appleAuth';
 import { hapticError, hapticSuccess } from '@/lib/haptics';
 import { signInWithGoogle } from '@/lib/oauth';
 import { useTheme } from '@/theme';
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
-  const router = useRouter();
   const { colors, spacing, shadows } = useTheme();
 
   const [fullName, setFullName] = useState('');
@@ -26,6 +27,7 @@ export default function SignUpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsError, setTermsError] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export default function SignUpScreen() {
     try {
       await signUp(email.trim(), password, fullName.trim());
       hapticSuccess();
-      router.replace('/(tabs)');
+      // The root route guard redirects once the new session and profile load.
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your account.');
       hapticError();
@@ -72,13 +74,28 @@ export default function SignUpScreen() {
       const result = await signInWithGoogle();
       if (result === 'success') {
         hapticSuccess();
-        router.replace('/(tabs)');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not continue with Google.');
       hapticError();
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setError(null);
+    setAppleLoading(true);
+    try {
+      const result = await signInWithApple();
+      if (result === 'success') {
+        hapticSuccess();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not continue with Apple.');
+      hapticError();
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -231,7 +248,7 @@ export default function SignUpScreen() {
             label="Create account"
             onPress={() => void handleSignUp()}
             loading={loading}
-            disabled={!acceptedTerms || googleLoading}
+            disabled={!acceptedTerms || googleLoading || appleLoading}
             icon="arrow-forward"
             iconPosition="right"
             size="lg"
@@ -244,20 +261,27 @@ export default function SignUpScreen() {
           <AuthDivider />
         </Reveal>
 
-        <Reveal delay={560}>
+        <Reveal delay={560} style={{ marginTop: spacing.lg }}>
+          <AppleSignInButton
+            onPress={() => void handleAppleSignIn()}
+            disabled={loading || googleLoading || appleLoading}
+          />
+        </Reveal>
+
+        <Reveal delay={610}>
           <Button
             label="Continue with Google"
             variant="outline"
             icon="logo-google"
             onPress={() => void handleGoogleSignIn()}
             loading={googleLoading}
-            disabled={loading}
+            disabled={loading || appleLoading}
             size="lg"
             style={{ marginTop: spacing.lg }}
           />
         </Reveal>
 
-        <Reveal delay={610}>
+        <Reveal delay={660}>
           <View
             style={{
               flexDirection: 'row',

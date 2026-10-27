@@ -74,10 +74,11 @@ export async function syncPushToken(userId: string): Promise<void> {
   try {
     const token = await requestPushToken();
     if (!token) return;
-    await supabase
+    const { error } = await supabase
       .from('profiles')
       .update({ push_token: token })
       .eq('id', userId);
+    if (error) throw error;
   } catch (error) {
     console.warn('[notifications] push token sync failed', error);
   }

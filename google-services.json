@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "193904352099",
+    "project_id": "expense-counter-a9885",
+    "storage_bucket": "expense-counter-a9885.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:193904352099:android:8772e7d64f84483e485156",
+        "android_client_info": {
+          "package_name": "com.tushar.expensecounter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhu_1oV3hBwhjiiezDtZQN0n3K1srCkIk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

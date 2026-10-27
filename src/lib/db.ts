@@ -1,17 +1,29 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 import type { Expense, Message } from '@/types';
+import { createSerialQueue } from './serialQueue';
 
 /**
  * Local SQLite cache. The app keeps a device-local copy of the signed-in user's
  * expenses and recent messages so it stays usable offline. Everything here is
  * wiped by `wipeLocalData()` when the user deletes their account.
+ *
+ * There is exactly one shared connection. Every write goes through a serial
+ * promise queue because expo-sqlite permits only one active transaction:
+ * concurrent calls to `withTransactionAsync` otherwise fail with
+ * "cannot commit - no transaction is active".
+ *
+ * SQLite is native-only. Metro selects `db.web.ts` on web, and the guards below
+ * make this module a safe no-op if it is ever imported there.
  */
 
 const DB_NAME = 'expense_counter.db';
 const SCHEMA_VERSION = 2;
+const SQLITE_ENABLED = Platform.OS !== 'web';
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+const enqueueWrite = createSerialQueue();
 
 async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
@@ -73,29 +85,33 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
 /* ------------------------------- expenses -------------------------------- */
 
 export async function cacheExpenses(userId: string, expenses: Expense[]): Promise<void> {
-  const db = await getDatabase();
-  await db.withTransactionAsync(async () => {
-    await db.runAsync('DELETE FROM local_expenses WHERE user_id = ?', userId);
-    for (const e of expenses) {
-      if (e.user_id !== userId) continue;
-      await db.runAsync(
-        `INSERT OR REPLACE INTO local_expenses
-           (id, user_id, amount, category, note, receipt_url, spent_at, created_at, synced)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-        e.id,
-        e.user_id,
-        e.amount,
-        e.category,
-        e.note,
-        e.receipt_url,
-        e.spent_at,
-        e.created_at
-      );
-    }
+  if (!SQLITE_ENABLED) return;
+  await enqueueWrite(async () => {
+    const db = await getDatabase();
+    await db.withTransactionAsync(async () => {
+      await db.runAsync('DELETE FROM local_expenses WHERE user_id = ?', userId);
+      for (const e of expenses) {
+        if (e.user_id !== userId) continue;
+        await db.runAsync(
+          `INSERT OR REPLACE INTO local_expenses
+             (id, user_id, amount, category, note, receipt_url, spent_at, created_at, synced)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+          e.id,
+          e.user_id,
+          e.amount,
+          e.category,
+          e.note,
+          e.receipt_url,
+          e.spent_at,
+          e.created_at
+        );
+      }
+    });
   });
 }
 
 export async function getLocalExpenses(userId: string): Promise<Expense[]> {
+  if (!SQLITE_ENABLED) return [];
   const db = await getDatabase();
   const rows = await db.getAllAsync<Expense & { synced: number }>(
     'SELECT * FROM local_expenses WHERE user_id = ? ORDER BY spent_at DESC, created_at DESC',
@@ -105,50 +121,60 @@ export async function getLocalExpenses(userId: string): Promise<Expense[]> {
 }
 
 export async function upsertLocalExpense(expense: Expense): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(
-    `INSERT OR REPLACE INTO local_expenses
-       (id, user_id, amount, category, note, receipt_url, spent_at, created_at, synced)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-    expense.id,
-    expense.user_id,
-    expense.amount,
-    expense.category,
-    expense.note,
-    expense.receipt_url,
-    expense.spent_at,
-    expense.created_at
-  );
+  if (!SQLITE_ENABLED) return;
+  await enqueueWrite(async () => {
+    const db = await getDatabase();
+    await db.runAsync(
+      `INSERT OR REPLACE INTO local_expenses
+         (id, user_id, amount, category, note, receipt_url, spent_at, created_at, synced)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      expense.id,
+      expense.user_id,
+      expense.amount,
+      expense.category,
+      expense.note,
+      expense.receipt_url,
+      expense.spent_at,
+      expense.created_at
+    );
+  });
 }
 
 export async function deleteLocalExpense(id: string): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync('DELETE FROM local_expenses WHERE id = ?', id);
+  if (!SQLITE_ENABLED) return;
+  await enqueueWrite(async () => {
+    const db = await getDatabase();
+    await db.runAsync('DELETE FROM local_expenses WHERE id = ?', id);
+  });
 }
 
 /* -------------------------------- messages ------------------------------- */
 
 export async function cacheMessages(messages: Message[]): Promise<void> {
-  const db = await getDatabase();
-  await db.withTransactionAsync(async () => {
-    for (const m of messages) {
-      await db.runAsync(
-        `INSERT OR REPLACE INTO local_messages
-           (id, conversation_id, sender_id, receiver_id, body, read_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        m.id,
-        m.conversation_id,
-        m.sender_id,
-        m.receiver_id,
-        m.body,
-        m.read_at,
-        m.created_at
-      );
-    }
+  if (!SQLITE_ENABLED) return;
+  await enqueueWrite(async () => {
+    const db = await getDatabase();
+    await db.withTransactionAsync(async () => {
+      for (const m of messages) {
+        await db.runAsync(
+          `INSERT OR REPLACE INTO local_messages
+             (id, conversation_id, sender_id, receiver_id, body, read_at, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          m.id,
+          m.conversation_id,
+          m.sender_id,
+          m.receiver_id,
+          m.body,
+          m.read_at,
+          m.created_at
+        );
+      }
+    });
   });
 }
 
 export async function getLocalMessages(withUserId: string, selfId: string): Promise<Message[]> {
+  if (!SQLITE_ENABLED) return [];
   const db = await getDatabase();
   return db.getAllAsync<Message>(
     `SELECT * FROM local_messages
@@ -165,6 +191,7 @@ export async function getLocalMessages(withUserId: string, selfId: string): Prom
 /* -------------------------------- settings ------------------------------- */
 
 export async function getLocalSetting(key: string): Promise<string | null> {
+  if (!SQLITE_ENABLED) return null;
   const db = await getDatabase();
   const row = await db.getFirstAsync<{ value: string }>(
     'SELECT value FROM local_settings WHERE key = ?',
@@ -174,12 +201,15 @@ export async function getLocalSetting(key: string): Promise<string | null> {
 }
 
 export async function setLocalSetting(key: string, value: string): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(
-    'INSERT OR REPLACE INTO local_settings (key, value) VALUES (?, ?)',
-    key,
-    value
-  );
+  if (!SQLITE_ENABLED) return;
+  await enqueueWrite(async () => {
+    const db = await getDatabase();
+    await db.runAsync(
+      'INSERT OR REPLACE INTO local_settings (key, value) VALUES (?, ?)',
+      key,
+      value
+    );
+  });
 }
 
 /* ------------------------------ account wipe ----------------------------- */
@@ -189,21 +219,27 @@ export async function setLocalSetting(key: string, value: string): Promise<void>
  * Called by the Delete Account flow after the server-side wipe succeeds.
  */
 export async function wipeLocalData(): Promise<void> {
-  const db = await getDatabase();
-  await db.execAsync(`
-    DELETE FROM local_expenses;
-    DELETE FROM local_messages;
-    DELETE FROM local_settings;
-    VACUUM;
-  `);
+  if (!SQLITE_ENABLED) return;
+  await enqueueWrite(async () => {
+    const db = await getDatabase();
+    await db.execAsync(`
+      DELETE FROM local_expenses;
+      DELETE FROM local_messages;
+      DELETE FROM local_settings;
+      VACUUM;
+    `);
+  });
 }
 
 /** Remove cached account content on sign-out while preserving device settings. */
 export async function wipeLocalUserData(): Promise<void> {
-  const db = await getDatabase();
-  await db.execAsync(`
-    DELETE FROM local_expenses;
-    DELETE FROM local_messages;
-    VACUUM;
-  `);
+  if (!SQLITE_ENABLED) return;
+  await enqueueWrite(async () => {
+    const db = await getDatabase();
+    await db.execAsync(`
+      DELETE FROM local_expenses;
+      DELETE FROM local_messages;
+      VACUUM;
+    `);
+  });
 }

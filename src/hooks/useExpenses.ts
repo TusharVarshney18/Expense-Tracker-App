@@ -58,11 +58,22 @@ export function useExpenses() {
       if (fetchError) throw fetchError;
 
       setExpenses((data as Expense[]) ?? []);
-      await cacheExpenses(userId, (data as Expense[]) ?? []);
+      try {
+        await cacheExpenses(userId, (data as Expense[]) ?? []);
+      } catch (cacheError) {
+        // The cache is disposable; never hide freshly loaded cloud data
+        // because the local write failed.
+        console.warn('Could not update the offline expense cache.', cacheError);
+      }
     } catch (err) {
       // Fall back to the offline cache when the network is unavailable.
       setError(getErrorMessage(err));
-      setExpenses(await getLocalExpenses(userId));
+      try {
+        setExpenses(await getLocalExpenses(userId));
+      } catch (cacheError) {
+        console.warn('Could not read the offline expense cache.', cacheError);
+        setExpenses([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -116,7 +127,11 @@ export function useExpenses() {
       const created = data as Expense;
 
       setExpenses((prev) => [created, ...prev]);
-      await upsertLocalExpense(created);
+      try {
+        await upsertLocalExpense(created);
+      } catch (cacheError) {
+        console.warn('Could not add the expense to the offline cache.', cacheError);
+      }
       return created;
     },
     [userId]
@@ -141,7 +156,11 @@ export function useExpenses() {
     if (deleteError) throw deleteError;
 
     setExpenses((prev) => prev.filter((e) => e.id !== id));
-    await deleteLocalExpense(id);
+    try {
+      await deleteLocalExpense(id);
+    } catch (cacheError) {
+      console.warn('Could not remove the expense from the offline cache.', cacheError);
+    }
   }, [userId]);
 
   const visibleExpenses = expensesForUserId === userId ? expenses : [];

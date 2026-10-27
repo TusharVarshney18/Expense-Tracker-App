@@ -1,12 +1,12 @@
 {
   "cli": {
     "version": ">= 12.6.0",
-    "appVersionSource": "local",
+    "appVersionSource": "remote",
     "requireCommit": false
   },
   "build": {
     "base": {
-      "node": "20.18.0",
+      "node": "22.13.0",
       "env": {
         "EXPO_NO_TELEMETRY": "1"
       }
@@ -45,6 +45,14 @@
       },
       "android": {
         "buildType": "app-bundle"
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "environment": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
       }
     }
   },

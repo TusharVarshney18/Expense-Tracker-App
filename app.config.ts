@@ -9,6 +9,12 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  *   - preview     -> com.tushar.expensecounter.preview
  *   - production  -> com.tushar.expensecounter
  *
+ * Each variant also gets its own URL scheme so an OAuth redirect always returns
+ * to the build that started the flow:
+ *   - development -> expensecounter-dev
+ *   - preview     -> expensecounter-preview
+ *   - production  -> expensecounter
+ *
  * Secrets are supplied through the environment (see .env.example). Nothing
  * sensitive is committed to this file.
  */
@@ -30,6 +36,37 @@ function getAppName(): string {
   return 'Expense Counter';
 }
 
+function getScheme(): string {
+  if (IS_DEV) return 'expensecounter-dev';
+  if (IS_PREVIEW) return 'expensecounter-preview';
+  return 'expensecounter';
+}
+
+/**
+ * Universal-link / web-credentials domain for iOS. OAuth itself uses the
+ * variant URL scheme above, so this is optional: set
+ * EXPO_PUBLIC_ASSOCIATED_DOMAIN (or EXPO_PUBLIC_SITE_URL) only when the site
+ * actually serves `/.well-known/apple-app-site-association`.
+ */
+function getAssociatedDomain(): string | null {
+  const explicit = process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN?.trim();
+  if (explicit) return explicit.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+
+  const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.trim();
+  if (!siteUrl) return null;
+  try {
+    return new URL(siteUrl).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function getAssociatedDomains(): string[] | undefined {
+  const domain = getAssociatedDomain();
+  if (!domain) return undefined;
+  return [`applinks:${domain}`, `webcredentials:${domain}`];
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: getAppName(),
@@ -37,14 +74,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  scheme: 'expensecounter',
+  scheme: getScheme(),
   userInterfaceStyle: 'automatic',
   assetBundlePatterns: ['**/*'],
 
-  // iOS is configured for parity, but Google Play is the release target.
+  // iOS ships from the same codebase as Android with its own bundle id per
+  // EAS profile (see getPackageName). Nothing Android-specific is applied here:
+  // googleServicesFile, permissions and blockedPermissions live under `android`.
   ios: {
     supportsTablet: false,
     bundleIdentifier: getPackageName(),
+    // Adds the com.apple.developer.applesignin entitlement (via the
+    // expo-apple-authentication config plugin) and enables the capability when
+    // EAS syncs credentials.
+    usesAppleSignIn: true,
+    associatedDomains: getAssociatedDomains(),
     infoPlist: {
       NSCameraUsageDescription:
         'Expense Counter uses your camera so you can attach a photo of a receipt to an expense.',
@@ -53,11 +97,87 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSPhotoLibraryUsageDescription:
         'Expense Counter uses your photo library so you can attach a saved receipt photo to an expense.',
       ITSAppUsesNonExemptEncryption: false
+    },
+    // App Store privacy manifest. Expo/React Native and the native modules ship
+    // their own manifests; this adds the reasons and data types the app itself
+    // relies on. Keep the collected data in sync with the Data Safety answers
+    // in docs/play-store-listing.md and the iOS nutrition labels in
+    // docs/release-checklist.md.
+    privacyManifests: {
+      NSPrivacyTracking: false,
+      NSPrivacyTrackingDomains: [],
+      NSPrivacyAccessedAPITypes: [
+        {
+          // AsyncStorage / preference storage.
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults',
+          NSPrivacyAccessedAPITypeReasons: ['CA92.1']
+        },
+        {
+          // expo-file-system, expo-sqlite and image caches read file timestamps.
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
+          NSPrivacyAccessedAPITypeReasons: ['C617.1']
+        },
+        {
+          // expo-file-system checks free space before writing receipts/caches.
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryDiskSpace',
+          NSPrivacyAccessedAPITypeReasons: ['E174.1']
+        },
+        {
+          // React Native timers read the system boot time.
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime',
+          NSPrivacyAccessedAPITypeReasons: ['35F9.1']
+        }
+      ],
+      NSPrivacyCollectedDataTypes: [
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeName',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality']
+        },
+        {
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeEmailAddress',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality']
+        },
+        {
+          // Expense amounts, split shares, settlements and the optional UPI ID.
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeOtherFinancialInfo',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality']
+        },
+        {
+          // In-app chat messages.
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeOtherUserContent',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality']
+        },
+        {
+          // Optional receipt photos.
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypePhotosorVideos',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality']
+        },
+        {
+          // Expo push token.
+          NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeDeviceID',
+          NSPrivacyCollectedDataTypeLinked: true,
+          NSPrivacyCollectedDataTypeTracking: false,
+          NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality']
+        }
+      ]
     }
   },
 
   android: {
     package: getPackageName(),
+    // Android-only. Never read on iOS, and the companion Gradle plugin is an
+    // android finalized mod only.
+    ...(APP_VARIANT === 'production' ? { googleServicesFile: './google-services.json' } : {}),
     versionCode: 1,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon-foreground.png',
@@ -108,6 +228,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   plugins: [
     'expo-router',
+    'expo-apple-authentication',
     'expo-secure-store',
     'expo-local-authentication',
     'expo-web-browser',
@@ -141,7 +262,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           image: './assets/splash-icon.png'
         }
       }
-    ]
+    ],
+    './plugins/withGoogleServicesGradle.cjs'
   ],
 
   experiments: {
@@ -155,6 +277,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    // The running build's URL scheme, used for the OAuth redirect.
+    appScheme: getScheme(),
     privacyPolicyUrl:
       process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ??
       'https://tushar.github.io/expense-counter/privacy-policy',

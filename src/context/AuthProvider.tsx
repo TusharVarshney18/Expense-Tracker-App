@@ -8,6 +8,7 @@ import React, {
   useState
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
@@ -18,9 +19,14 @@ import { wipeLocalUserData } from '@/lib/db';
 import { clearAllLocalBudgets, clearLocalBudget } from '@/lib/localBudget';
 import { getSitePageUrl } from '@/lib/site';
 import { TERMS_VERSION } from '@/content/legal';
+import { completeOAuthSignIn, isAuthCallbackUrl } from '@/lib/oauth';
 
 interface AuthContextValue {
   initializing: boolean;
+  /** True while the signed-in user's profile (including Terms) is loading. */
+  profileLoading: boolean;
+  /** True while an OAuth deep-link callback is being exchanged for a session. */
+  authCallbackLoading: boolean;
   session: Session | null;
   user: Session['user'] | null;
   profile: Profile | null;
@@ -44,31 +50,43 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initializing, setInitializing] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [authCallbackLoading, setAuthCallbackLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [locked, setLocked] = useState(false);
   const bootstrapped = useRef(false);
+  const profileRequestId = useRef(0);
   const currentUserId = session?.user?.id;
 
   const loadProfile = useCallback(async (userId: string) => {
-    const [profileResult, upiResult] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, full_name, display_name, avatar_url, created_at, updated_at, terms_accepted_at, terms_version')
-        .eq('id', userId)
-        .maybeSingle(),
-      supabase.rpc('get_my_upi_id')
-    ]);
-    if (!profileResult.error && profileResult.data) {
-      const { data: authData } = await supabase.auth.getUser();
-      setProfile({
-        ...(profileResult.data as Omit<Profile, 'email' | 'upi_id' | 'push_token'>),
-        email: authData.user?.id === userId ? authData.user.email ?? '' : '',
-        upi_id: upiResult.error ? null : upiResult.data,
-        push_token: null
-      });
-    } else if (!profileResult.error) {
-      setProfile(null);
+    // Ignore a slow response for a previous account/session.
+    const requestId = ++profileRequestId.current;
+    setProfileLoading(true);
+    try {
+      const [profileResult, upiResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, full_name, display_name, avatar_url, created_at, updated_at, terms_accepted_at, terms_version')
+          .eq('id', userId)
+          .maybeSingle(),
+        supabase.rpc('get_my_upi_id')
+      ]);
+      if (requestId !== profileRequestId.current) return;
+      if (!profileResult.error && profileResult.data) {
+        const { data: authData } = await supabase.auth.getUser();
+        if (requestId !== profileRequestId.current) return;
+        setProfile({
+          ...(profileResult.data as Omit<Profile, 'email' | 'upi_id' | 'push_token'>),
+          email: authData.user?.id === userId ? authData.user.email ?? '' : '',
+          upi_id: upiResult.error ? null : upiResult.data,
+          push_token: null
+        });
+      } else if (!profileResult.error) {
+        setProfile(null);
+      }
+    } finally {
+      if (requestId === profileRequestId.current) setProfileLoading(false);
     }
   }, []);
 
@@ -76,6 +94,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let active = true;
 
     (async () => {
+      // A cold start from an OAuth callback must exchange the code before the
+      // route guard decides whether the user is signed in.
+      const initialUrl = await Linking.getInitialURL();
+      if (active && initialUrl && isAuthCallbackUrl(initialUrl)) {
+        setAuthCallbackLoading(true);
+        try {
+          await completeOAuthSignIn(initialUrl);
+        } catch (error) {
+          console.warn('Could not complete the OAuth callback.', error);
+        } finally {
+          if (active) setAuthCallbackLoading(false);
+        }
+      }
+
       const { data } = await supabase.auth.getSession();
       if (!active) return;
 
@@ -103,24 +135,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
       if (nextSession?.user) {
-        await loadProfile(nextSession.user.id);
-        if (event === 'SIGNED_IN' && bootstrapped.current) {
-          void syncPushToken(nextSession.user.id);
-        }
+        void loadProfile(nextSession.user.id).then(() => {
+          if (event === 'SIGNED_IN' && bootstrapped.current) {
+            void syncPushToken(nextSession.user.id);
+          }
+        });
       } else {
+        profileRequestId.current += 1;
         setProfile(null);
+        setProfileLoading(false);
         void wipeLocalUserData();
         void clearAllLocalBudgets();
       }
     });
 
+    // Warm OAuth returns (the app was already running when the browser
+    // redirected back) arrive as URL events rather than through the browser
+    // helper's return value.
+    const linkingSubscription = Linking.addEventListener('url', ({ url }) => {
+      if (!active || !isAuthCallbackUrl(url)) return;
+      setAuthCallbackLoading(true);
+      void completeOAuthSignIn(url)
+        .catch((error) => {
+          console.warn('Could not complete the OAuth deep link.', error);
+        })
+        .finally(() => {
+          if (active) setAuthCallbackLoading(false);
+        });
+    });
+
     return () => {
       active = false;
       subscription.unsubscribe();
+      linkingSubscription.remove();
     };
   }, [loadProfile]);
 
@@ -146,9 +197,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    profileRequestId.current += 1;
     await wipeLocalUserData();
     if (currentUserId) await clearLocalBudget(currentUserId);
     setProfile(null);
+    setProfileLoading(false);
   }, [currentUserId]);
 
   const acceptTerms = useCallback(async () => {
@@ -163,7 +216,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const deleteAccount = useCallback(async () => {
     if (!currentUserId) throw new Error('Not signed in.');
     await deleteAccountService(currentUserId);
+    profileRequestId.current += 1;
     setProfile(null);
+    setProfileLoading(false);
     setSession(null);
   }, [currentUserId]);
 
@@ -180,6 +235,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       initializing,
+      profileLoading,
+      authCallbackLoading,
       session,
       user: session?.user ?? null,
       profile,
@@ -190,11 +247,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       deleteAccount,
       refreshProfile,
-      termsAccepted: profile?.terms_version === TERMS_VERSION,
+      // Terms are accepted only when the timestamp exists AND it was the
+      // current version. A null timestamp or an older version keeps the gate up.
+      termsAccepted:
+        Boolean(profile?.terms_accepted_at) && profile?.terms_version === TERMS_VERSION,
       acceptTerms
     }),
     [
       initializing,
+      profileLoading,
+      authCallbackLoading,
       session,
       profile,
       locked,
