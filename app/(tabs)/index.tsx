@@ -71,7 +71,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const { colors, spacing, radius, layout, shadows } = useTheme();
-  const { expenses, loading, error, reload, removeExpense, addExpense } = useExpenses();
+  const { expenses, loading, error, reload, removeExpense, updateExpense } = useExpenses({ loadOnMount: false });
   const { budgetPaise, refreshBudget } = useBudget();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -233,13 +233,11 @@ export default function HomeScreen() {
     setSavingEdit(true);
     setEditError(null);
     try {
-      await addExpense({
+      await updateExpense(expenseToEdit.id, {
         amount: numeric,
         category: editCategory,
-        note: editNote.trim() || null,
-        spentAt: expenseToEdit.spent_at.slice(0, 10)
+        note: editNote.trim() || null
       });
-      await removeExpense(expenseToEdit.id);
       hapticSuccess();
       setExpenseToEdit(null);
     } catch (err) {
@@ -248,7 +246,7 @@ export default function HomeScreen() {
     } finally {
       setSavingEdit(false);
     }
-  }, [addExpense, editAmount, editCategory, editNote, expenseToEdit, removeExpense, savingEdit]);
+  }, [editAmount, editCategory, editNote, expenseToEdit, savingEdit, updateExpense]);
 
   const header = (
     <View>
@@ -507,10 +505,9 @@ export default function HomeScreen() {
             <Money paise={section.totalPaise} size="small" color={colors.textMuted} />
           </View>
         )}
-        renderItem={({ item, index }) => (
+        renderItem={({ item }) => (
           <ExpenseSwipeRow
             expense={item}
-            index={index}
             onPress={() => openEdit(item)}
             onEdit={() => openEdit(item)}
             onDelete={() => confirmDelete(item)}

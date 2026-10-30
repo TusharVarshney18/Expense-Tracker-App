@@ -30,7 +30,7 @@ function getErrorMessage(error: unknown): string {
   return 'Failed to load expenses.';
 }
 
-export function useExpenses() {
+export function useExpenses({ loadOnMount = true }: { loadOnMount?: boolean } = {}) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -57,14 +57,13 @@ export function useExpenses() {
         .order('created_at', { ascending: false });
       if (fetchError) throw fetchError;
 
-      setExpenses((data as Expense[]) ?? []);
-      try {
-        await cacheExpenses(userId, (data as Expense[]) ?? []);
-      } catch (cacheError) {
-        // The cache is disposable; never hide freshly loaded cloud data
-        // because the local write failed.
+      const rows = (data as Expense[]) ?? [];
+      setExpenses(rows);
+      // Keep the disposable cache current without holding the screen in its
+      // loading state while SQLite writes every expense one by one.
+      void cacheExpenses(userId, rows).catch((cacheError) => {
         console.warn('Could not update the offline expense cache.', cacheError);
-      }
+      });
     } catch (err) {
       // Fall back to the offline cache when the network is unavailable.
       setError(getErrorMessage(err));
@@ -80,10 +79,11 @@ export function useExpenses() {
   }, [userId]);
 
   useEffect(() => {
+    if (!loadOnMount) return;
     // This effect starts an async data load; the state updates belong to that request.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-  }, [load]);
+  }, [load, loadOnMount]);
 
   const addExpense = useCallback(
     async (input: NewExpenseInput): Promise<Expense> => {
@@ -127,11 +127,9 @@ export function useExpenses() {
       const created = data as Expense;
 
       setExpenses((prev) => [created, ...prev]);
-      try {
-        await upsertLocalExpense(created);
-      } catch (cacheError) {
+      void upsertLocalExpense(created).catch((cacheError) => {
         console.warn('Could not add the expense to the offline cache.', cacheError);
-      }
+      });
       return created;
     },
     [userId]
@@ -139,28 +137,49 @@ export function useExpenses() {
 
   const removeExpense = useCallback(async (id: string) => {
     if (!userId) throw new Error('Not signed in.');
-    const { data: expense, error: readError } = await supabase
-      .from('personal_expenses')
-      .select('receipt_url')
-      .eq('id', id)
-      .maybeSingle();
-    if (readError) throw readError;
-    if (!expense) throw new Error('Expense not found.');
-    if (expense.receipt_url) {
-      await removeReceiptObject(userId, expense.receipt_url);
-    }
-    const { error: deleteError } = await supabase
+    const { data: expense, error: deleteError } = await supabase
       .from('personal_expenses')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select('receipt_url')
+      .maybeSingle();
     if (deleteError) throw deleteError;
+    if (!expense) throw new Error('Expense not found.');
 
     setExpenses((prev) => prev.filter((e) => e.id !== id));
-    try {
-      await deleteLocalExpense(id);
-    } catch (cacheError) {
+    void deleteLocalExpense(id).catch((cacheError) => {
       console.warn('Could not remove the expense from the offline cache.', cacheError);
+    });
+    if (expense.receipt_url) {
+      void removeReceiptObject(userId, expense.receipt_url).catch((receiptError) => {
+        console.warn('Could not remove the expense receipt.', receiptError);
+      });
     }
+  }, [userId]);
+
+  const updateExpense = useCallback(async (
+    id: string,
+    input: Pick<NewExpenseInput, 'amount' | 'category' | 'note'>
+  ): Promise<Expense> => {
+    if (!userId) throw new Error('Not signed in.');
+    const { data, error: updateError } = await supabase
+      .from('personal_expenses')
+      .update({
+        amount: input.amount,
+        category: input.category,
+        note: input.note ?? null
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (updateError) throw updateError;
+
+    const updated = data as Expense;
+    setExpenses((prev) => prev.map((expense) => expense.id === id ? updated : expense));
+    void upsertLocalExpense(updated).catch((cacheError) => {
+      console.warn('Could not update the expense in the offline cache.', cacheError);
+    });
+    return updated;
   }, [userId]);
 
   const visibleExpenses = expensesForUserId === userId ? expenses : [];
@@ -173,6 +192,7 @@ export function useExpenses() {
     total,
     reload: load,
     addExpense,
-    removeExpense
+    removeExpense,
+    updateExpense
   };
 }

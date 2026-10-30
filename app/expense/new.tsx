@@ -89,7 +89,7 @@ function Key({
 
 export default function NewExpenseScreen() {
   const router = useRouter();
-  const { addExpense } = useExpenses();
+  const { addExpense } = useExpenses({ loadOnMount: false });
   const { colors, spacing, radius, fonts, layout } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
 

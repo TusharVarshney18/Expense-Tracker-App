@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { useTheme } from '@/theme';
@@ -17,10 +16,9 @@ interface ExpenseSwipeRowProps {
   onEdit: () => void;
   onDelete: () => void;
   onPress?: () => void;
-  index?: number;
 }
 
-export function ExpenseSwipeRow({ expense, onEdit, onDelete, onPress, index = 0 }: ExpenseSwipeRowProps) {
+export function ExpenseSwipeRow({ expense, onEdit, onDelete, onPress }: ExpenseSwipeRowProps) {
   const { colors, radius, spacing } = useTheme();
   const meta = categoryMeta(expense.category);
   const accent = categoryColor(colors, expense.category);
@@ -70,7 +68,7 @@ export function ExpenseSwipeRow({ expense, onEdit, onDelete, onPress, index = 0 
   );
 
   return (
-    <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 35).duration(280)}>
+    <View>
       <Swipeable
         renderRightActions={actions}
       overshootRight={false}
@@ -120,7 +118,7 @@ export function ExpenseSwipeRow({ expense, onEdit, onDelete, onPress, index = 0 
           <Money paise={rupeesToPaise(Number(expense.amount))} size="body" color={colors.text} />
         </PressableScale>
       </Swipeable>
-    </Animated.View>
+    </View>
   );
 }
 
